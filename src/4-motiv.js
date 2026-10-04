@@ -47,13 +47,19 @@ function badgeProg(b,c){const v=k=>['prs','weeksOk','vol'].includes(k)?c.X[k]:c[
 function evalBadges(silent){REV++;S.badges=S.badges||{};const c=CTX(),fresh=[];
  BADGES.forEach(b=>{if(!S.badges[b.id]&&badgeProg(b,c).ok){S.badges[b.id]=stamp({d:today()},'badges',b.id);fresh.push(b)}});if(fresh.length)save();return silent?[]:fresh}
 function reconcileBadges(){REV++;/* the sets just changed: recompute before judging */const c=CTX(),gone=[];BADGES.forEach(b=>{const x=S.badges?.[b.id];if(x&&SETKEYS.includes(b.k)&&!badgeProg(b,c).ok){delete S.badges[b.id];tomb('badges',b.id,x.ver);gone.push(b)}});return gone}
-/* a trophy is a round tag; its family decides the mark printed in the middle */
+/* a trophy is a round medal; its kind gives it a colour of the palette, its family decides the mark printed in the middle */
+const BADGEC={sessions:'ac',streak:'push',prs:'gold',vol:'core',weeksOk:'legs',early:'pull',late:'core',variety:'glute',drop:'push',protDays:'prot',weigh:'water',meas:'fat',bench:'gold',squat:'gold',dead:'gold'};
 function badgeSvg(b,on,size=56){
  const fixed={first:'1',early:'6h',late:'21h',v20:'20',drop:'↘',prot7:'P',weigh10:'kg',meas1:'cm',bench1:'1×',squat15:'1,5',dead2:'2×'}[b.id];
  const lab=fixed||(/^t\d/.test(b.id)?b.id.slice(1)+'t':/^s\d/.test(b.id)?b.id.slice(1):/^w\d/.test(b.id)?b.id.slice(1)+'s':b.id.startsWith('pw')?b.id.slice(2)+'✓':b.id.startsWith('pr')?'PR':'★');
- const rec=['pr','t','be','sq','de'].some(p=>b.id.startsWith(p));
- return `<svg width="${size}" height="${size}" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="25" style="fill:${on?(rec?'var(--hl)':'var(--ink)'):'var(--paper2)'};stroke:${on?'var(--ink)':'var(--rule2)'};stroke-width:2${on?'':';stroke-dasharray:4 3'}"/>
- <text x="28" y="${lab.length>3?32:34}" text-anchor="middle" style="font:800 ${lab.length>3?12:lab.length>2?15:17}px var(--fw);font-stretch:80%;fill:${on?(rec?'#18233A':'var(--paper)'):'var(--ink3)'}">${esc(lab)}</text></svg>`}
+ const k=BADGEC[b.k]||'ac',c=`var(--${k})`,gold=k==='gold';
+ /* tint behind, solid ring, text mixed towards the ink so it stays readable (≥ 4,5:1) in both themes */
+ const bg=`color-mix(in srgb,${c} ${gold?30:16}%,var(--card))`,tx=`color-mix(in srgb,${c} ${gold?42:70}%,var(--ink))`;
+ const fs=lab.length>4?10.5:lab.length>3?12:lab.length>2?15:17,ty=lab.length>3?32:lab.length>2?33.5:34;
+ return on?`<svg class="bsvg" width="${size}" height="${size}" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="25.5" style="fill:${bg};stroke:${c};stroke-width:3"/><circle cx="28" cy="28" r="19.5" style="fill:none;stroke:${c};stroke-width:1.2;stroke-dasharray:2 2.6;opacity:.55"/>
+ <text x="28" y="${ty}" text-anchor="middle" style="font:800 ${fs}px var(--fw);font-stretch:80%;fill:${tx}">${esc(lab)}</text></svg>`
+ :`<svg class="bsvg" width="${size}" height="${size}" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="25" style="fill:var(--soft);stroke:color-mix(in srgb,${c} 45%,var(--line2));stroke-width:2;stroke-dasharray:4 3"/>
+ <text x="28" y="${ty}" text-anchor="middle" style="font:800 ${fs}px var(--fw);font-stretch:80%;fill:color-mix(in srgb,${c} ${gold?25:35}%,var(--ink3))">${esc(lab)}</text></svg>`}
 function nextBadge(){const c=CTX();const L=BADGES.filter(b=>!S.badges?.[b.id]&&b.goal>1&&!['bench','squat','dead'].includes(b.k)).map(b=>{const p=badgeProg(b,c);return {b,f:p.cur/b.goal,cur:p.cur}}).filter(x=>x.f<1).sort((a,b)=>b.f-a.f)[0];
  if(!L)return null;const left=Math.ceil(L.b.goal-L.cur),u={sessions:['séance','séances'],streak:['semaine d’affilée','semaines d’affilée'],prs:['record','records'],weeksOk:['semaine à l’objectif','semaines à l’objectif'],variety:['nouvel exercice','nouveaux exercices'],protDays:['jour à l’objectif de protéines','jours à l’objectif de protéines'],weigh:['pesée','pesées']}[L.b.k];
  return {b:L.b,txt:L.b.k==='vol'?`Encore ${fmt(Math.ceil(left/100)/10)} t à soulever`:u?`Plus que ${left} ${u[left>1?1:0]}`:L.b.d}}
@@ -80,35 +86,64 @@ function challenges(){const mon=mondayOf(today()),D=WEEKS()[mon]||[],L=D.flatMap
 /* newly completed weekly challenge, announced once per week */
 function chalCheck(){const wk=mondayOf(today());S.chal=S.chal&&S.chal.w===wk?S.chal:{w:wk,done:[]};const n=challenges().find(c=>c.cur>=c.goal&&!S.chal.done.includes(c.id));if(n){S.chal.done.push(n.id);save()}return n||null}
 /* ---------- heatmap: last 18 weeks, one cell per day with a session ---------- */
-function heatmap(){const end=mondayOf(today()),start=addDays(end,-7*17),V={};doneSess().forEach(s=>{const k=key(s.start);if(k>=start)V[k]=(V[k]||0)+1});
+/* each training day takes the colour of the muscle family it worked the most */
+function heatmap(){const end=mondayOf(today()),start=addDays(end,-7*17),V={},F={};doneSess().forEach(s=>{const k=key(s.start);if(k>=start){V[k]=(V[k]||0)+1;F[k]=F[k]||{};sWork(s.id).forEach(l=>{const g=grp(l.e);F[k][g]=(F[k][g]||0)+1})}});
+ const top=d=>{const o=F[d]||{};let b=null;for(const g in o)if(!b||o[g]>o[b])b=g;return b||'legs'};
  const cols=[];for(let w=0;w<18;w++){const m=addDays(start,7*w);cols.push([...Array(7)].map((_,i)=>{const d=addDays(m,i);return {d,v:V[d]||0,fut:d>today()}}))}
- const cell=13,gap=3,W=18*(cell+gap),H=7*(cell+gap);
- return `<svg viewBox="0 0 ${W+18} ${H+16}" width="100%" role="img" aria-label="Jours d’entraînement sur 18 semaines : ${Object.keys(V).length} jours">
+ const cell=13,gap=3,W=18*(cell+gap),H=7*(cell+gap),used=[...new Set(Object.keys(V).map(top))],LG=Object.keys(GRPN).filter(g=>used.includes(g));
+ return `<svg class="hmap" viewBox="0 0 ${W+18} ${H+(LG.length?34:16)}" width="100%" role="img" aria-label="Jours d’entraînement sur 18 semaines : ${Object.keys(V).length} jours">
  ${['L','','M','','V','','D'].map((l,i)=>l?`<text x="0" y="${i*(cell+gap)+cell-2}" style="fill:var(--ink3);font:600 9px var(--fw)">${l}</text>`:'').join('')}
- ${cols.map((c,w)=>c.map((x,i)=>x.fut?'':`<rect x="${18+w*(cell+gap)}" y="${i*(cell+gap)}" width="${cell}" height="${cell}" rx="3" style="fill:${x.v?'var(--ink)':'var(--paper2)'};stroke:${x.d===today()?'var(--red)':'var(--rule)'};stroke-width:${x.d===today()?2:1}"><title>${dShort(x.d)}${x.v?', séance':''}</title></rect>`).join('')).join('')}
- ${cols.map((c,w)=>{const d=c[0].d;return +d.slice(8)<=7?`<text x="${18+w*(cell+gap)}" y="${H+12}" style="fill:var(--ink3);font:600 9px var(--fw)">${MONTHS[+d.slice(5,7)-1].slice(0,4)}</text>`:''}).join('')}</svg>`}
-/* ---------- shareable session card (PNG 1080×1350, logbook colours) ---------- */
-async function sessionPNG(sid){const s=sessById(sid),TL=sWork(sid),prs=[...new Set(TL.filter(isRec).map(l=>l.e))],X=XP(),T=tierOf(X.lvl);
+ ${cols.map((c,w)=>c.map((x,i)=>{if(x.fut)return '';const t=x.d===today(),g=x.v?top(x.d):null;
+  return `<rect x="${18+w*(cell+gap)+(t?1:0)}" y="${i*(cell+gap)+(t?1:0)}" width="${cell-(t?2:0)}" height="${cell-(t?2:0)}" rx="3" style="fill:${g?`var(--${g})`:'var(--soft)'};stroke:${t?'var(--ink)':g?'none':'var(--line)'};stroke-width:${t?2:1}"><title>${dShort(x.d)}${x.v?', séance '+GRPN[g].toLowerCase():''}${t?' (aujourd’hui)':''}</title></rect>`}).join('')).join('')}
+ ${cols.map((c,w)=>{const d=c[0].d;return +d.slice(8)<=7?`<text x="${18+w*(cell+gap)}" y="${H+12}" style="fill:var(--ink3);font:600 9px var(--fw)">${MONTHS[+d.slice(5,7)-1].slice(0,4)}</text>`:''}).join('')}
+ ${(()=>{let lx=0;return LG.map(g=>{const x0=lx;lx+=13+GRPN[g].length*5.4+9;return `<rect x="${f1(x0)}" y="${H+22}" width="9" height="9" rx="2.5" style="fill:var(--${g})"/><text x="${f1(x0+13)}" y="${H+30}" style="fill:var(--ink2);font:600 9.5px var(--fw)">${GRPN[g]}</text>`}).join('')})()}</svg>`}
+/* ---------- shareable session card (PNG 1080×1350, light palette of 1-head.html: a canvas cannot read CSS variables) ---------- */
+const PNGC={bg:'#F4F5F7',card:'#FFFFFF',ink:'#111827',ink2:'#4B5563',line:'#E5E7EB',ac:'#2F5BEA',vi:'#6D3FE0',gold:'#F5B700',
+ fam:{push:['#EA580C','#FFF1E7'],pull:['#2563EB','#EAF1FE'],legs:['#059669','#E6F7F1'],glute:['#DB2777','#FDECF4'],core:['#7C3AED','#F2ECFE']}};
+async function sessionPNG(sid){const s=sessById(sid),TL=sWork(sid),prs=[...new Set(TL.filter(isRec).map(l=>l.e))],X=XP(),T=tierOf(X.lvl),C=PNGC;
  try{await Promise.all(['900 120px Archivo','600 30px Archivo','400 30px Archivo'].map(f=>document.fonts.load(f)))}catch(e){}
  const W=1080,H=1350,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d'),F='Archivo, system-ui, sans-serif';
- x.fillStyle='#EEF1EC';x.fillRect(0,0,W,H);x.strokeStyle='rgba(24,35,58,.07)';x.lineWidth=2;for(let i=0;i<W;i+=48){x.beginPath();x.moveTo(i,0);x.lineTo(i,H);x.stroke()}for(let j=0;j<H;j+=48){x.beginPath();x.moveTo(0,j);x.lineTo(W,j);x.stroke()}
- x.fillStyle='#18233A';x.font='800 40px '+F;x.fillText('Charge',72,110);
- x.fillStyle='#465169';x.font='500 34px '+F;x.fillText(cap(dLong(key(s.start))),72,170);
- x.fillStyle='#FFE04A';x.fillRect(64,300,620,90);x.fillStyle='#18233A';x.font='900 130px '+F;x.fillText('Séance',64,370);x.fillText('validée',64,510);
- x.fillStyle='#465169';x.font='600 38px '+F;x.fillText(sessName(s),72,580);
- [['Séries',String(TL.length)],['Durée',sessMins(s)+' min'],['Records',String(prs.length)]].forEach(([l,val],i)=>{const X0=72+i*318;x.fillStyle='#F8FAF6';x.strokeStyle='#18233A';x.lineWidth=3;x.beginPath();x.roundRect(X0,660,294,190,24);x.fill();x.stroke();x.fillStyle='#465169';x.font='500 30px '+F;x.fillText(l,X0+28,712);x.fillStyle='#18233A';x.font='800 84px '+F;x.fillText(val,X0+28,810)});
- let y=950;prs.slice(0,4).forEach(id=>{const b=TL.filter(l=>l.e===id&&isRec(l)).at(-1);x.fillStyle='#BF2F2C';x.font='800 30px '+F;x.fillText('RECORD',72,y);x.fillStyle='#18233A';x.font='600 38px '+F;x.fillText(exo(id).n.slice(0,26),240,y);x.textAlign='right';x.font='800 40px '+F;x.fillText(b?setTxt(b):'',1008,y);x.textAlign='left';y+=72});
- x.fillStyle='#18233A';x.font='700 34px '+F;x.fillText(T[1]+', niveau '+X.lvl+' — '+pl(streak(),'semaine')+' d’affilée',72,H-70);
+ const rr=(X0,Y0,w,h,r)=>{x.beginPath();x.roundRect(X0,Y0,w,h,r)};
+ const fit=(t,max)=>{if(x.measureText(t).width<=max)return t;while(t.length>1&&x.measureText(t+'…').width>max)t=t.slice(0,-1);return t.trimEnd()+'…'};
+ x.fillStyle=C.bg;x.fillRect(0,0,W,H);
+ /* hero: blue → violet, like the app gradient */
+ const gr=x.createLinearGradient(48,48,1032,600);gr.addColorStop(0,C.ac);gr.addColorStop(1,C.vi);x.fillStyle=gr;rr(48,48,984,552,48);x.fill();
+ x.save();rr(48,48,984,552,48);x.clip();x.fillStyle='rgba(255,255,255,.08)';x.beginPath();x.arc(940,120,230,0,7);x.fill();x.beginPath();x.arc(1010,540,140,0,7);x.fill();x.restore();
+ x.fillStyle='#FFFFFF';x.font='800 40px '+F;x.fillText('Charge',104,132);
+ x.fillStyle='rgba(255,255,255,.86)';x.font='500 34px '+F;x.fillText(cap(dLong(key(s.start))),104,190);
+ x.fillStyle=C.gold;rr(104,214,96,10,5);x.fill();
+ x.fillStyle='#FFFFFF';x.font='900 130px '+F;x.fillText('Séance',96,366);x.fillText('validée',96,492);
+ x.fillStyle='rgba(255,255,255,.9)';x.font='600 38px '+F;x.fillText(fit(sessName(s),860),104,558);
+ /* three tiles, each in its own colour */
+ [['Séries',String(TL.length),C.fam.pull],['Durée',sessMins(s)+' min',C.fam.legs],['Records',String(prs.length),['#A15C07','#FFF5E5']]].forEach(([l,val,[cs,cb]],i)=>{const X0=48+i*334;
+  x.fillStyle=cb;rr(X0,636,316,176,32);x.fill();x.fillStyle=cs;rr(X0,636,12,176,[32,0,0,32]);x.fill();
+  x.fillStyle=cs;x.font='700 30px '+F;x.fillText(l,X0+44,688);x.fillStyle=C.ink;let fz=80;do{x.font='800 '+fz+'px '+F;fz-=4}while(fz>40&&x.measureText(val).width>250);x.fillText(val,X0+44,782)});
+ /* sets per muscle family */
+ const by={};TL.forEach(l=>{const g=grp(l.e);by[g]=(by[g]||0)+1});const G=Object.keys(C.fam).filter(g=>by[g]);
+ let y=874;if(G.length){x.fillStyle=C.ink2;x.font='700 28px '+F;x.fillText('Muscles travaillés',56,y);
+  let X0=56;const BW=968;x.save();rr(56,y+24,BW,30,15);x.clip();G.forEach(g=>{const w=BW*by[g]/TL.length;x.fillStyle=C.fam[g][0];x.fillRect(X0,y+24,w+1,30);X0+=w});x.restore();
+  let fz=28,gp=34;const lw=()=>G.reduce((a,g)=>a+32+x.measureText(GRPN[g]+' '+by[g]).width,0)+gp*(G.length-1);x.font='600 28px '+F;while(lw()>968&&fz>20){fz-=2;gp=Math.max(18,gp-4);x.font='600 '+fz+'px '+F}
+  X0=56;G.forEach(g=>{const t=GRPN[g]+' '+by[g];x.fillStyle=C.fam[g][0];rr(X0,y+80,22,22,6);x.fill();x.fillStyle=C.ink;x.fillText(t,X0+32,y+100);X0+=32+x.measureText(t).width+gp});y+=176}
+ prs.slice(0,G.length?3:5).forEach(id=>{const b=TL.filter(l=>l.e===id&&isRec(l)).at(-1);
+  x.fillStyle=C.gold;rr(56,y-36,150,48,24);x.fill();x.fillStyle=C.ink;x.font='800 26px '+F;x.textAlign='center';x.fillText('RECORD',131,y-3);
+  x.textAlign='right';x.font='800 38px '+F;const v=b?setTxt(b):'';x.fillText(v,1024,y);const vw=x.measureText(v).width;
+  x.textAlign='left';x.font='600 36px '+F;x.fillText(fit(exo(id).n,1024-vw-40-232),232,y);y+=66});
+ x.fillStyle=C.line;x.fillRect(56,H-128,968,2);
+ x.fillStyle=C.gold;x.beginPath();x.arc(72,H-72,14,0,7);x.fill();
+ x.fillStyle=C.ink;x.font='700 32px '+F;x.fillText(fit(T[1]+', niveau '+X.lvl+' — '+pl(streak(),'semaine')+' d’affilée',920),100,H-61);
  return new Promise(ok=>c.toBlob(ok,'image/png'))}
-/* ---------- level mark: a plate seen from the front, filled by the progress to the next level ---------- */
-function levelRing(X,size=56){const r=22,c=2*Math.PI*r;
- return `<svg width="${size}" height="${size}" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="${r}" style="fill:var(--card);stroke:var(--rule2);stroke-width:6"/>
- <circle cx="28" cy="28" r="${r}" style="fill:none;stroke:var(--hl);stroke-width:6;stroke-linecap:round" stroke-dasharray="${c*Math.max(.02,X.frac)} ${c}" transform="rotate(-90 28 28)"/>
- <text x="28" y="34" text-anchor="middle" style="font:800 19px var(--fw);font-stretch:80%;fill:var(--ink)">${X.lvl}</text></svg>`}
+/* ---------- level mark: a plate seen from the front, filled (blue → violet) by the progress to the next level ---------- */
+let LVLN=0;
+function levelRing(X,size=56){const r=22,c=2*Math.PI*r,id='lvg'+(++LVLN);
+ return `<svg class="lvl" width="${size}" height="${size}" viewBox="0 0 56 56" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--ac)"/><stop offset="1" style="stop-color:var(--core)"/></linearGradient></defs>
+ <circle cx="28" cy="28" r="${r}" style="fill:var(--card);stroke:var(--acbg);stroke-width:6"/>
+ <circle cx="28" cy="28" r="${r}" style="fill:none;stroke:url(#${id});stroke-width:6;stroke-linecap:round" stroke-dasharray="${c*Math.max(.02,X.frac)} ${c}" transform="rotate(-90 28 28)"/>
+ <circle cx="28" cy="28" r="15.5" style="fill:var(--acbg)"/>
+ <text x="28" y="34" text-anchor="middle" style="font:800 ${String(X.lvl).length>2?15:19}px var(--fw);font-stretch:80%;fill:color-mix(in srgb,var(--ac) 70%,var(--ink))">${X.lvl}</text></svg>`}
 /* ---------- one short burst of paper squares; never restarted while it runs ---------- */
 let confettiOn=false;
 function confetti(){if(confettiOn||matchMedia('(prefers-reduced-motion: reduce)').matches)return;const c=document.getElementById('confetti');if(!c)return;confettiOn=true;const x=c.getContext('2d'),W=c.width=c.offsetWidth*2,H=c.height=c.offsetHeight*2;
- const cols=['#FFE04A','#18233A','#BF2F2C','#1E7A4A','#F8FAF6'],P=[...Array(70)].map(()=>({x:W/2+(Math.random()-.5)*W*.3,y:H*.35,vx:(Math.random()-.5)*26,vy:-Math.random()*30-8,r:6+Math.random()*10,c:cols[Math.floor(Math.random()*5)],a:Math.random()*6}));
+ const cols=['#2F5BEA','#6D3FE0','#EA580C','#059669','#DB2777','#F5B700'],P=[...Array(70)].map(()=>({x:W/2+(Math.random()-.5)*W*.3,y:H*.35,vx:(Math.random()-.5)*26,vy:-Math.random()*30-8,r:6+Math.random()*10,c:cols[Math.floor(Math.random()*cols.length)],a:Math.random()*6}));
  const t0=performance.now();const f=now=>{const el=document.getElementById('confetti');if(!el){confettiOn=false;return}x.clearRect(0,0,W,H);P.forEach(p=>{p.vy+=1.1;p.x+=p.vx;p.y+=p.vy;p.a+=.1;x.save();x.translate(p.x,p.y);x.rotate(p.a);x.fillStyle=p.c;x.fillRect(-p.r/2,-p.r/2,p.r,p.r*.6);x.restore()});
   if(now-t0<2600)requestAnimationFrame(f);else{x.clearRect(0,0,W,H);confettiOn=false}};requestAnimationFrame(f)}
 </script>

@@ -1,0 +1,21 @@
+<style>
+/* ---------- figs : dessins d’exercices, trophées, anneau de niveau, calendrier d’assiduité ----------
+   Le fond de chaque dessin est déjà teinté par sa famille musculaire (3-figs.js, data-fam sur le <svg>).
+   Ici : un liseré de la même famille par-dessus le dessin (outline, peint au-dessus du SVG), et quelques finitions.
+   Aucune couleur hors tokens. Spécificité faible (:where) pour laisser la main aux styles d’écran. */
+:where(.thumb,.demo):has(>svg[data-fam]){outline:1.5px solid var(--fl,transparent);outline-offset:-1.5px}
+:where(.thumb,.demo):has(>svg[data-fam="push"]){--fl:color-mix(in srgb,var(--push) 26%,var(--card))}
+:where(.thumb,.demo):has(>svg[data-fam="pull"]){--fl:color-mix(in srgb,var(--pull) 26%,var(--card))}
+:where(.thumb,.demo):has(>svg[data-fam="legs"]){--fl:color-mix(in srgb,var(--legs) 26%,var(--card))}
+:where(.thumb,.demo):has(>svg[data-fam="glute"]){--fl:color-mix(in srgb,var(--glute) 26%,var(--card))}
+:where(.thumb,.demo):has(>svg[data-fam="core"]){--fl:color-mix(in srgb,var(--core) 26%,var(--card))}
+/* légende des dessins : « → effort » de la couleur de la flèche dessinée (encre), distincte des appuis (bleu) */
+.legend>span:not(:has(i)){color:var(--ink);font-weight:650}
+/* trophées obtenus : légère ombre portée, verrouillés : à plat */
+.bsvg{display:block;flex:none;overflow:visible}
+.bdg.on .bsvg{filter:drop-shadow(0 2px 4px color-mix(in srgb,var(--ink) 14%,transparent))}
+/* anneau de niveau et calendrier */
+.lvl{display:block;flex:none}
+.hmap{display:block}
+.hmap rect{shape-rendering:geometricPrecision}
+</style>

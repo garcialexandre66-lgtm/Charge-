@@ -1,3 +1,19 @@
+# Charge 6.2 — plus de couleurs
+
+- Chaque famille de muscles a sa couleur, partout dans l'appli : Poussée en orange, Tirage en bleu, Jambes en vert, Fessiers en rose, Gainage en violet.
+- Accueil : la séance du jour est sur une carte en dégradé, avec une barre de progression pour la semaine.
+- Séance : une barre de progression, un anneau de repos coloré, une carte en dégradé pour les records et un écran de victoire.
+- Progrès, bilan du mois, records, bibliothèque (filtre par famille), nutrition (protéines, glucides et lipides en couleur), Moi : tout a ses icônes et ses tuiles en couleur.
+- Dessins des exercices : le fond est teinté selon la famille du muscle.
+- Corrections :
+  - le bouton « Annuler (erreur) » était invisible en mode sombre ;
+  - le dégradé des graphiques ne s'affichait pas ;
+  - les liens « Supprimer » sont de nouveau en rouge ;
+  - les charges ne sont plus coupées sur deux lignes ;
+  - certains dessins étaient coupés au bord ;
+  - « Changer de programme » ne fermait pas la fenêtre.
+- Le texte coloré reste lisible, en mode clair comme en mode sombre (contraste vérifié).
+
 # Charge 6.1 — nouveaux dessins des exercices
 
 - Les 92 exercices sont redessinés : silhouette en volume (membres galbés, buste dessiné, contours), muscles travaillés en rouge à l’intérieur du corps, matériel détouré, sol et ombre. Version claire et sombre.

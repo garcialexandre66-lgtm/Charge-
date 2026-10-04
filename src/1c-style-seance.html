@@ -1,0 +1,174 @@
+<style>
+/* ================= Séance (agent ui): Accueil, séance en cours, repos, record, bilan, victoire, éditeur, sélecteur, navigation =================
+   Colours come only from the tokens of 1-head. --gt = family colour readable as text (on its tint or on a card),
+   --gf = family colour as a fill (text on it uses var(--card)). Both derived from --g, so they follow light and dark mode. */
+.gp-push,.gp-pull,.gp-legs,.gp-glute,.gp-core{--gt:var(--g);--gf:var(--g)}
+@supports (color:color-mix(in srgb,red,blue)){
+ .gp-push,.gp-pull,.gp-legs,.gp-glute,.gp-core{--gt:color-mix(in srgb,var(--g) 75%,var(--ink));--gf:color-mix(in srgb,var(--g) 80%,var(--ink))}
+ .gtag{color:var(--gt,var(--g,var(--ink2)))}}
+
+/* ---------- bottom navigation: the active tab sits in a coloured pill ---------- */
+nav#nav{box-shadow:0 -4px 16px rgba(17,24,39,.05)}
+nav#nav button{gap:2px;padding-top:2px}
+nav#nav .ni{display:flex;align-items:center;justify-content:center;width:58px;height:30px;border-radius:15px;transition:background .15s}
+nav#nav button[aria-current] .ni{background:var(--acbg)}
+nav#nav button[aria-current]{font-weight:800}
+nav#nav .live{top:2px;right:calc(50% - 26px)}
+.spill{background:var(--grad);color:#fff;box-shadow:0 8px 24px rgba(47,91,234,.35)}
+.spill i{background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.3)}
+
+/* ---------- Accueil ---------- */
+.today{position:relative;overflow:hidden;background:var(--grad);color:#fff;box-shadow:0 10px 28px rgba(47,91,234,.28)}
+.today::before{content:'';position:absolute;right:-60px;top:-70px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.09);pointer-events:none}
+.today::after{content:'';position:absolute;right:30px;top:60px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.06);pointer-events:none}
+.today>*{position:relative;z-index:1}
+.today .k{display:inline-flex;align-items:center;gap:6px;opacity:1;color:rgba(255,255,255,.92);text-transform:uppercase;letter-spacing:.6px;font-size:13px;font-weight:700}
+.today .m{opacity:1;color:rgba(255,255,255,.92)}
+.today .btn{background:#fff;color:var(--ac);box-shadow:0 4px 14px rgba(0,0,0,.14)}
+@media (prefers-color-scheme:dark){.today .btn{color:var(--bg)}}
+.today .exl span{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);color:#fff}
+.today .exl .gdot{width:9px;height:9px;box-shadow:0 0 0 2px rgba(255,255,255,.85)}
+.today .link{color:#fff}
+.hwk .wkbar{height:8px;border-radius:4px;background:var(--soft);overflow:hidden}
+.hwk .wkbar i{display:block;height:100%;border-radius:4px;background:var(--grad2);transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.hwk .wkn{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;background:var(--soft);color:var(--ink2);font-size:13px;font-weight:700;white-space:nowrap}
+.hwk .wkn.ok{background:var(--okbg);color:var(--ok)}
+.wk .d.done{background:var(--ok);color:var(--onok);box-shadow:0 2px 8px rgba(21,128,61,.25)}
+.wk .d.today{box-shadow:0 0 0 2.5px var(--ac);color:var(--ac);background:var(--acbg)}
+.wk .d.today.done{background:var(--ok);color:var(--onok);box-shadow:0 0 0 2.5px var(--card),0 0 0 4.5px var(--ok)}
+.streak{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;background:var(--warnbg);color:var(--warn);font-size:15px;font-weight:700}
+
+/* ---------- Séance en cours ---------- */
+.wtop .t{font-size:18px}
+.wprog{height:6px;border-radius:3px;background:var(--soft);overflow:hidden;margin-top:-6px}
+.wprog i{display:block;height:100%;border-radius:3px;background:var(--grad);transition:width .4s}
+.steps{gap:8px;padding:3px 2px}
+.steps button{border:2px solid transparent;background:var(--gbg,var(--soft));color:var(--gt,var(--ink2))}
+.steps button.done{border-color:var(--g,var(--ok));background:var(--card);color:var(--gt,var(--ok))}
+.steps button.on,.steps button.done.on{border-color:var(--gf,var(--ac));background:var(--gf,var(--ac));color:var(--card);box-shadow:0 3px 10px rgba(17,24,39,.15)}
+.steps button.add{border:2px dashed var(--line2);background:transparent;color:var(--ink2)}
+.exhead .thumb{width:84px;height:70px;border-radius:14px;background:var(--gbg,var(--soft));box-shadow:inset 0 0 0 2px var(--g,var(--line))}
+.exhead .meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.goal{position:relative;padding:14px 16px 14px 20px;background:var(--gbg,var(--acbg));overflow:hidden}
+.goal::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--g,var(--ac))}
+.goal .k{color:var(--gt,var(--ac));text-transform:uppercase;letter-spacing:.5px}
+.goal .v{color:var(--gt,var(--ac))}
+.wsets{padding:4px 16px}
+.set.now .n{background:var(--gbg,var(--acbg));color:var(--gt,var(--ac));box-shadow:inset 0 0 0 2px var(--g,var(--ac))}
+.set.now .v{color:var(--gt,var(--ac))}
+.set.done:not(.warm) .n{box-shadow:0 0 0 3px var(--okbg)}
+.dials{border:2px solid var(--g,var(--ac));gap:8px;position:relative;overflow:hidden}
+.dials::before{content:'';position:absolute;left:0;right:0;top:0;height:5px;background:var(--g,var(--ac))}
+.dials .dial .lab{color:var(--gt,var(--ink3))}
+.dials .round{background:var(--gbg,var(--soft));color:var(--gt,var(--ink))}
+.dials .dial input:focus{border-bottom-color:var(--g,var(--ac))}
+.dials .btn.fam{margin-top:4px}
+/* one rule for the whole exercise (workout card, options sheet, rest): the main button takes the family colour */
+.btn.fam{background:var(--gf,var(--ac));color:var(--card);box-shadow:0 6px 16px rgba(17,24,39,.16)}
+@supports (color:color-mix(in srgb,red,blue)){.btn.fam{box-shadow:0 6px 16px color-mix(in srgb,var(--g,var(--ac)) 32%,transparent)}}
+.dials .round:disabled,.setsh .round:disabled{opacity:.35}
+.exdone{align-items:center;text-align:center;background:var(--okbg);border-color:transparent}
+.exdone .okt{display:flex;align-items:center;gap:8px;color:var(--ok);font-weight:800;font-size:20px}
+.last{display:flex;gap:8px;align-items:flex-start;margin:0;padding:10px 12px;border-radius:12px;background:var(--card);border:1px solid var(--line);font-size:15px;color:var(--ink2)}
+.last .i{color:var(--ink3);margin-top:1px}
+
+/* ---------- repos ---------- */
+.full.rest{gap:12px;justify-content:flex-start}
+.full.rest>:first-child{margin-top:auto}.full.rest>:last-child{margin-bottom:auto}
+.rest .rhead{display:flex;flex-direction:column;align-items:center;gap:6px}
+.rwrap{position:relative;width:min(236px,62vw);aspect-ratio:1;display:flex;align-items:center;justify-content:center;flex:none}
+.rwrap svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.rwrap .trk{fill:none;stroke:var(--gbg,var(--soft));stroke-width:9}
+.rwrap .arc{fill:none;stroke:var(--g,var(--ac));stroke-width:9;stroke-linecap:round;stroke-dasharray:100;transition:stroke-dashoffset .25s linear}
+.rwrap.over .arc{stroke:var(--ok)}
+.rwrap .rin{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px}
+.rest .timer{font-size:clamp(56px,17vw,72px);letter-spacing:-2px}
+.rwrap.over .timer{color:var(--ok)}
+.rnext{display:flex;align-items:center;gap:10px;width:100%;max-width:360px;padding:12px 14px;border-radius:14px;background:var(--card);border:1px solid var(--line);text-align:left;font-size:15px}
+.rnext .gdot{width:12px;height:12px;border-radius:6px}
+.rsug{width:100%;max-width:360px;padding:12px 14px;border-radius:14px;background:var(--acbg);color:var(--ink);text-align:left;font-size:15px;display:flex;gap:10px;align-items:flex-start}
+.rsug .i{color:var(--ac);flex:none}
+
+.rest .chip.on{background:var(--gf);border-color:var(--gf);color:var(--card)}
+/* ---------- options d'une série (setSheet): same family colour as the workout card ---------- */
+.setsh .sethead .gtag{vertical-align:1px}
+.setsh .round{background:var(--gbg);color:var(--gt)}
+.setsh .round.ac{background:var(--gf);color:var(--card)}
+.setsh .kgrow{gap:8px;flex-wrap:nowrap}
+.setsh .kgin{flex:1 1 auto;width:auto;min-width:0;font-size:clamp(42px,13.5vw,58px);letter-spacing:-1px}
+.setsh .kgin:focus{border-bottom-color:var(--g)}
+.setsh .chip.on{background:var(--gf);border-color:var(--gf);color:var(--card)}
+.setsh .chip.on small{color:inherit;opacity:.9}
+.setsh .stepper .num{color:var(--gt)}
+.setsh .sw[aria-checked="true"] .knob{background:var(--gf)}
+.setsh .sfoot .btn{background:var(--gf);color:var(--card)}
+.setsh b.hl{color:var(--gt)}
+/* ---------- record ---------- */
+.full.rec{gap:20px}
+.rechero{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;max-width:360px;padding:28px 20px 24px;border-radius:24px;background:var(--grad);color:#fff;box-shadow:0 14px 34px rgba(47,91,234,.35);overflow:hidden}
+.rechero::before{content:'';position:absolute;left:-50px;bottom:-80px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.08)}
+.rechero>*{position:relative}
+.medal{width:72px;height:72px;border-radius:36px;display:flex;align-items:center;justify-content:center;background:var(--gold);color:#3A2A00;box-shadow:0 0 0 6px rgba(255,255,255,.22)}
+.medal svg{stroke-width:2.6}.rechero .medal svg{fill:currentColor;stroke-width:1.9}
+.rechero h2{color:#fff;font-size:28px}
+.rechero .num{font-size:clamp(34px,10.5vw,52px);line-height:1.1;white-space:normal;text-wrap:balance;text-align:center;color:#fff}
+.rechero .exn{font-size:18px;font-weight:700;color:rgba(255,255,255,.95)}
+.rechero p{color:rgba(255,255,255,.92)}
+
+/* ---------- bilan (finish) ---------- */
+.ftiles .tile{background:var(--gbg);border-color:transparent}
+.ftiles .tile .sm{color:var(--gt);font-weight:700}
+.ftiles .tile .num{color:var(--gt)}
+.ftiles .t-ac{--g:var(--ac);--gbg:var(--acbg);--gt:var(--ac)}
+.reccard{border-left:5px solid var(--gold)}
+.reccard .lbl{color:var(--warn)}
+.reccard .row .i{color:var(--gold)}
+
+/* ---------- victoire ---------- */
+.full.win{gap:16px}
+.winhero{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;width:100%;max-width:380px;padding:24px 20px;border-radius:24px;background:var(--grad);color:#fff;box-shadow:0 14px 34px rgba(47,91,234,.32);overflow:hidden}
+.winhero::before{content:'';position:absolute;right:-60px;top:-60px;width:190px;height:190px;border-radius:50%;background:rgba(255,255,255,.09)}
+.winhero>*{position:relative}
+.winhero h1{color:#fff;margin:0}
+.winhero .wsub{color:rgba(255,255,255,.92);font-size:15px}
+.winhero .wst{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;margin-top:6px}
+.winhero .wst div{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px;border-radius:14px;background:rgba(255,255,255,.15)}
+.winhero .wst .num{font-size:22px;color:#fff}
+.winhero .wst span:last-child{font-size:13px;color:rgba(255,255,255,.92)}
+.win .xpbar{height:12px;border-radius:6px}
+.win .xpbar i{background:var(--grad);border-radius:6px}
+.win .xpv{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+/* dark mode: the dark gradient is too dim on the card, the text uses the light accent → violet instead (≥ 5.8:1) */
+@media (prefers-color-scheme:dark){.win .xpv{background:linear-gradient(135deg,var(--ac),var(--core));-webkit-background-clip:text;background-clip:text}}
+.win .wcard{width:100%;max-width:380px;text-align:left}
+.win .wact{display:flex;flex-direction:column;gap:8px;width:100%;max-width:380px}
+
+/* ---------- éditeur de séance, sélecteur, remplacement ---------- */
+.pcard{position:relative;overflow:hidden;padding:12px 14px 12px 18px}
+.pcard::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--g)}
+.pcard .pn{display:flex;align-items:center;gap:8px;min-width:0}
+.pcard .pn b{overflow:hidden;text-overflow:ellipsis}
+.pickh{display:flex;align-items:center;gap:8px;margin-top:10px}
+.pickh .lbl{color:var(--gt)}
+.pickh .gdot{width:10px;height:10px}
+.pex .thumb,.li.gpx .thumb{background:var(--gbg);box-shadow:inset 0 0 0 1.5px var(--g)}
+.pex .add{width:36px;height:36px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:18px;background:var(--gbg);color:var(--gt)}
+/* Programme page: same coloured cards as the first launch */
+.sc-prog>.chev{align-self:center}
+.sc-prog .sc-tag{flex:none}
+.tplc{flex-direction:column;align-items:stretch;gap:12px}
+.chdots{display:flex;gap:4px;margin-top:6px}
+.chdots .gdot{width:8px;height:8px}
+
+/* programme cards: title on one full line, level pill on the subtitle line */
+.sc-prog .sc-tt{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.sc-prog .sc-sub{gap:8px;flex-wrap:wrap;align-items:center;row-gap:4px}
+.sc-prog .grow.col{min-width:0}
+/* toast: at the top, but under the top bar so it never covers the back button nor the main buttons */
+.toast{top:calc(64px + env(safe-area-inset-top,0px));bottom:auto;pointer-events:none}
+/* a sheet or the rest screen is open: the toast goes in the free strip above it, clear of its close button */
+body:has(#ov :is(.sheet,.rest,.rec)) .toast{top:calc(4px + env(safe-area-inset-top,0px))}
+.toast button{pointer-events:auto}
+/* one logged set never breaks between its load and its unit */
+.nw{white-space:nowrap}
+</style>

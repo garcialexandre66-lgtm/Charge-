@@ -2,12 +2,14 @@
 /* ================= overlay helpers: focus moves into the dialog, the page behind is inert, focus returns on close ================= */
 let curSheet=null,opener=null;
 function setInert(on){['#app','#nav','#pill'].forEach(s=>{const e=$(s);if(!e)return;e.inert=on;if(on)e.setAttribute('aria-hidden','true');else e.removeAttribute('aria-hidden')})}
-function sheet(h,k){const ov=$('#ov'),old=ov.querySelector('.sheet>div'),same=old&&curSheet===k,top=same?old.scrollTop:0;
+function sheet(h,k,cls){const ov=$('#ov'),old=ov.querySelector('.sheet>div'),same=old&&curSheet===k,top=same?old.scrollTop:0;
  const fe=document.activeElement,fk=same&&fe&&ov.contains(fe)?{id:fe.id,a:fe.dataset?.a,v:fe.dataset?.v}:null;
  if(!ov.innerHTML)opener=document.activeElement;
- curSheet=k;ov.innerHTML=`<div class="sheet${same?' re':''}" data-k="${k}"><div role="dialog" aria-modal="true" aria-labelledby="sheet-title">${h}</div></div>`;setInert(true);
+ curSheet=k;ov.innerHTML=`<div class="sheet${same?' re':''}" data-k="${k}"><div role="dialog" aria-modal="true" aria-labelledby="sheet-title"${cls?` class="${cls}"`:''}>${h}</div></div>`;setInert(true);
  const box=ov.querySelector('.sheet>div');if(top)box.scrollTop=top;
- if(fk){const t=fk.id?document.getElementById(fk.id):[...box.querySelectorAll('[data-a]')].find(e=>e.dataset.a===fk.a&&(e.dataset.v??'')===(fk.v??''));if(t){t.focus({preventScroll:true});return}}
+ if(fk){const all=[...box.querySelectorAll('[data-a]')];let t=fk.id?document.getElementById(fk.id):all.find(e=>e.dataset.a===fk.a&&(e.dataset.v??'')===(fk.v??''));
+  /* a stepper that just reached its limit is disabled: focus moves to the same control's other direction */
+  if(t?.disabled)t=all.find(e=>e.dataset.a===fk.a&&!e.disabled);if(t){t.focus({preventScroll:true});return}}
  if(!same)(box.querySelector('#sheet-title')||box.querySelector('button,input'))?.focus({preventScroll:true})}
 function openLayer(h,k){const ov=$('#ov');if(!ov.innerHTML)opener=document.activeElement;curSheet=k;ov.innerHTML=h;setInert(true);(ov.querySelector('[id$="-title"]')||ov.querySelector('button'))?.focus({preventScroll:true})}
 function close(){const k0=curSheet;clearInterval(timer);$('#ov').innerHTML='';curSheet=null;view.st=null;view.delprog=0;view.mood=null;view.note=null;view.rec=null;view.qq=null;view.el=null;
@@ -31,20 +33,22 @@ function replaceAll(N){const now=Date.now(),del={...(S.del||{})};
  N.del=del;N.mt={};META.forEach(f=>N.mt[f]=now);S=N;REV++}
 
 /* ================= actions ================= */
+/* the workout − button is disabled at the lowest load (0 kg); focus stays on the stepper */
+function dkgMin(id,k){const m=$('#dkgm');if(!m)return;const off=isFinite(k)&&k<=LIM.kg[ltOf(id)][0],had=document.activeElement===m;m.disabled=off;if(off&&had)m.parentNode.querySelector('[data-a="dkg"][data-v="1"]')?.focus({preventScroll:true})}
 const A={
  tab:v=>{if(v==='seance'&&tab==='seance'&&view.page){view={};return render()}go(v)},
  page:v=>{view={page:v};render();scrollTo(0,0)},
  back:()=>{if(view.page==='ex'&&view.from&&view.from!=='prog'){if(view.from==='lib'){view={page:'lib',lm:view.lm,lq:view.lq};render();scrollTo(0,0);return}if(view.from==='sess'&&view.fsid){view={page:'sess',sid:view.fsid};render();return}return go(view.from)}
   if(view.page==='sess'&&view.fday){view={page:'day',day:view.fday};render();return}
   const keep=tab==='prog'?{ym:view.ym}:tab==='corps'?{ct:view.ct}:{};view=keep;render();scrollTo(0,0)},
- gotoprogs:()=>go('seance',{page:'progs'}),gopoids:()=>go('corps',{ct:'poids'}),gocorps:()=>{close();go('corps',{ct:'recup'})},
+ gotoprogs:()=>{if($('#ov').innerHTML)closeOv();go('seance',{page:'progs'})},gopoids:()=>go('corps',{ct:'poids'}),gocorps:()=>{close();go('corps',{ct:'recup'})},
  day:v=>go('prog',{page:'day',day:v}),
  sess:v=>{const fday=view.page==='day'?view.day:null;closeOv();go('prog',{page:'sess',sid:v,fday})},
  /* séance */
  startsess:()=>{primeAudio();keepAwake();ensureSession();save();view={};render();scrollTo(0,0)},
  choosesess:()=>chooseSheet(),
  wex:v=>{view.cur=v;view.draft=null;view.more=null;if($('#ov').innerHTML)closeOv();if(tab!=='seance'){tab='seance'}view.page=null;render();scrollTo(0,0)},
- dkg:v=>{const id=curEx(),i=$('#dkg');if(!id||!i)return;const n=parseNum(i.value),k=clampKg(id,(isFinite(n)?n:0)+ +v*incOf(id));i.value=String(k).replace('.',',');i.removeAttribute('aria-invalid');draftOf(id).kg=k},
+ dkg:v=>{const id=curEx(),i=$('#dkg');if(!id||!i)return;const n=parseNum(i.value),k=clampKg(id,(isFinite(n)?n:0)+ +v*incOf(id));i.value=String(k).replace('.',',');i.removeAttribute('aria-invalid');draftOf(id).kg=k;dkgMin(id,k)},
  dr:v=>{const id=curEx(),i=$('#dr');if(!id||!i)return;const n=parseNum(i.value),r=clampR(id,(isFinite(n)?n:0)+ +v);i.value=r;i.removeAttribute('aria-invalid');draftOf(id).r=r},
  wdone:()=>{const id=curEx();if(!id)return;const ik=$('#dkg'),ir=$('#dr'),v=checkSet(id,ik?.value??'',ir?.value??'',$('#seterr'));
   if(!v){const lt=ltOf(id),kg=ik?.value===''&&lt!=='load'?0:parseNum(ik?.value);(inR(kg,LIM.kg[lt])?ir:ik)?.setAttribute('aria-invalid','true');return}
@@ -79,7 +83,7 @@ const A={
  warmtog:()=>{const st=stOf();if(!st)return;syncKg();st.w=!st.w;if(st.w)st.dr=null;setSheet(st.id)},
  again:()=>{const id=stOf().id,tg=target(id);if(!tg)return;closeOv();logSet(id,tg.kg,tg.r,'ok')},
  validate:()=>{const st=stOf();if(!st)return;const v=readSet(st.id,'#kgin',st.r);if(!v)return;st.kg=v.kg;if(!st.w)view.rows?.[st.id]?.splice(0,1);
-  if(st.dr&&st.dr.some(d=>!inR(d.kg,LIM.kg.load)||!inR(d.r,[1,100]))){const e=$('#seterr');e.hidden=false;e.textContent='Palier dégressif invalide.';return}
+  if(st.dr&&st.dr.some(d=>!inR(d.kg,LIM.kg.load)||!inR(d.r,[1,100]))){const e=$('#sseterr')||$('#seterr');e.hidden=false;e.textContent='Palier dégressif invalide.';return}
   closeOv();logSet(st.id,v.kg,v.r,st.f,st.dr,st.w)},
  warm:v=>{const st=stOf();if(!st)return;const [kg,r]=v.split(':').map(Number);logSet(st.id,kg,r,null,null,true)},
  dellog:v=>{const l=delLog(v);if(!l)return;const gone=reconcileBadges();save();
@@ -91,7 +95,7 @@ const A={
  efeel:v=>{const E=view.el;E.kg=parseNum($('#ekg').value);E.r=parseNum($('#er').value);E.f=v;editLogSheet(E.lid?{lid:E.lid}:{sid:E.sid,e:E.e})},
  ewarm:()=>{const E=view.el;E.kg=parseNum($('#ekg').value);E.r=parseNum($('#er').value);E.w=!E.w;if(E.w)E.dr=null;editLogSheet(E.lid?{lid:E.lid}:{sid:E.sid,e:E.e})},
  edropoff:()=>{const E=view.el;E.kg=parseNum($('#ekg').value);E.r=parseNum($('#er').value);E.dr=null;editLogSheet(E.lid?{lid:E.lid}:{sid:E.sid,e:E.e})},
- savelog:()=>{const E=view.el,l=E.lid?S.logs.find(x=>x.id===E.lid):null,id=l?l.e:E.e,i=$('#ekg'),v=checkSet(id,i?.value??'',String(parseNum($('#er').value)),$('#seterr'),l?ltL(l):undefined,l?unL(l):undefined);if(!v){i?.setAttribute('aria-invalid','true');return}
+ savelog:()=>{const E=view.el,l=E.lid?S.logs.find(x=>x.id===E.lid):null,id=l?l.e:E.e,i=$('#ekg'),v=checkSet(id,i?.value??'',String(parseNum($('#er').value)),$('#sseterr')||$('#seterr'),l?ltL(l):undefined,l?unL(l):undefined);if(!v){i?.setAttribute('aria-invalid','true');return}
   if(l){l.kg=v.kg;l.r=v.r;if(E.w){l.w=1;delete l.f;delete l.dr}else{delete l.w;l.f=E.f;if(E.dr)l.dr=E.dr;else delete l.dr}stamp(l)}
   else{const s=sessById(E.sid);if(!s)return close();const L=sLogs(s.id),t=Math.max(s.start,L.at(-1)?.t||s.start)+6e4;
    if(!s.plan.some(p=>p.id===id)){s.plan.push({id,s:1,rmin:v.r,rmax:v.r,n:exo(id).n,extra:1})}if(s.end&&t>s.end)s.end=t;stamp(s);
@@ -265,7 +269,7 @@ document.addEventListener('change',ev=>{const t=ev.target,d=t.dataset,c=d.c;
   decodeBarcode(f).then(code=>{if(code)return afterCode(code);scanSheet({err:'Pas de code-barres trouvé sur la photo. Rapproche-toi, cadre-le bien à plat et net, ou saisis les chiffres.'})})
   .catch(()=>scanSheet({err:'Le lecteur de code-barres n’a pas pu se charger (réseau nécessaire la première fois). Saisis les chiffres du code.'}));return}
  if(t.id==='labelfile'){const f=t.files[0];t.value='';if(f&&sample)readLabel(f);return}
- if(c==='kg'){const n=parseNum(t.value),st=view.st;if(st&&inR(n,LIM.kg[ltOf(st.id)])){st.kg=n;t.removeAttribute('aria-invalid');if(exo(st.id).k==='barre')setSheet(st.id)}else t.setAttribute('aria-invalid','true');return}
+ if(c==='kg'){const n=parseNum(t.value),st=view.st;if(st&&inR(n,LIM.kg[ltOf(st.id)])){st.kg=n;t.removeAttribute('aria-invalid');document.querySelectorAll('.setsh [data-a="kg"][data-v^="-"]').forEach(b=>b.disabled=n<=LIM.kg[ltOf(st.id)][0]);if(exo(st.id).k==='barre')setSheet(st.id)}else t.setAttribute('aria-invalid','true');return}
  if(c==='prof'){const k=d.k,n=parseNum(t.value),lim={a:LIM.a,h:LIM.h,rest:[10,900],bar:[5,30],step:[.1,50],water:[.5,6]}[k],e=$('#proferr');
   if(!lim||!inR(n,lim)){t.setAttribute('aria-invalid','true');if(e){e.hidden=false;e.textContent=(k==='a'?'Âge entre 14 et 99 ans.':k==='h'?'Taille entre 120 et 230 cm.':'Valeur hors limites.')}return}
   t.removeAttribute('aria-invalid');if(e)e.hidden=true;S.prof[k]=n;if(k==='a'||k==='h')S.prof.body=1;touch('prof');save();if(S.prof.onb)render();return}
@@ -282,7 +286,7 @@ document.addEventListener('change',ev=>{const t=ev.target,d=t.dataset,c=d.c;
  if(c==='fm'){view.fm=t.value;return}
  if(c==='gcid'){const v=t.value.trim();if(/^[\w-]+\.apps\.googleusercontent\.com$/.test(v)){try{localStorage.setItem('charge-gcid',v)}catch(e){}render()}else t.setAttribute('aria-invalid','true');return}});
 document.addEventListener('input',ev=>{const t=ev.target,i=t.dataset.i;
- if(t.id==='dkg'||t.id==='dr'){const id=curEx(),n=parseNum(t.value);if(id&&isFinite(n))draftOf(id)[t.id==='dkg'?'kg':'r']=n;t.removeAttribute('aria-invalid');return}
+ if(t.id==='dkg'||t.id==='dr'){const id=curEx(),n=parseNum(t.value);if(id&&isFinite(n))draftOf(id)[t.id==='dkg'?'kg':'r']=n;if(id&&t.id==='dkg')dkgMin(id,t.value===''?NaN:n);t.removeAttribute('aria-invalid');return}
  if(t.dataset.row){const [id,k,f]=t.dataset.row.split('|');view.rows=view.rows||{};const T=view.rows[id]=view.rows[id]||[];T[+k]=T[+k]||{};T[+k][f]=t.value.replace(',','.');t.removeAttribute('aria-invalid');return}
  if(i==='exq'){$('#exlist').innerHTML=exList(t.value);return}
  if(i==='lq'){view.lq=t.value;$('#lgrid').innerHTML=libCards();return}
