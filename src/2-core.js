@@ -1,7 +1,7 @@
 <script>
 "use strict";
 /* ================= data ================= */
-const APPV='5.1';
+const APPV='5.2';
 const $=s=>document.querySelector(s);
 /* rough recovery window in hours per muscle: an app heuristic (large ≈72 h, medium ≈48 h, small ≈36 h), not a measurement */
 const MUS={quadriceps:72,ischios:72,fessiers:72,dorsaux:72,pectoraux:72,lombaires:72,épaules:48,trapèzes:48,biceps:48,triceps:48,adducteurs:48,mollets:36,abdos:36,obliques:36,'avant-bras':36};
