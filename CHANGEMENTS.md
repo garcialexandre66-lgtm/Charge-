@@ -1,3 +1,13 @@
+# Charge 5.3 (revue par 5 IA spécialisées, chaque remarque vérifiée)
+
+- **Synchro** : les suppressions (aliments, pesées, programmes, exercices, repas types, objectifs) ne reviennent plus ; un objectif refixé ou un programme réappliqué n’est plus effacé par un autre appareil ; une modification d’aliment n’est plus perdue pendant une synchro.
+- **Sécurité** : les identifiants d’un fichier importé ou du Drive sont contrôlés (pas d’injection de code).
+- **Séance** : une séance oubliée d’un autre jour est validée automatiquement à la première série du jour ; un exercice ajouté reprend ses séries et répétitions du programme ou de la dernière fois ; en superset, le focus va sur le bon exercice ; la fiche reprend la valeur tapée dans le carnet ; la fiche reste utilisable après un échauffement ; le repos peut se réduire en pastille (« Voir le carnet ») ; l’écran reste allumé au retour dans l’appli.
+- **Corriger une ancienne série** respecte la mesure avec laquelle elle a été notée.
+- **Nutrition** : plancher calorique (jamais sous le métabolisme de repos ni 1 200 kcal femme / 1 500 kcal homme), déficit de sèche limité à 20 %, ajustement limité à ±500 kcal, vitesse de poids jugée en % du poids (Helms et al., 2014).
+- **Programmes** : Full body B gagne un soulevé de terre roumain ; Force 5 × 5 passe Intermédiaire avec développé militaire barre ; « Fessiers à la maison » remplace le nordic curl par un soulevé de terre roumain haltères ; indices corrigés (tirage vertical, gainage, marche du fermier).
+- **Design** : contrastes corrigés en mode sombre (coche verte, bouton rouge, ligne en cours) et clair (tags, bordures des champs) ; cibles tactiles à 44 px ; textes à 13 px minimum ; le message du bas n’est plus caché par la barre d’erreur.
+
 # Charge 5.1
 
 ## Nouveau

@@ -189,8 +189,8 @@ function Corps(){const ct=view.ct||'poids';
  return `<h1>Corps</h1>${seg}${({poids:Poids,mesures:Mesures,photos:Photos,recup:Recup})[ct]()}`}
 function Poids(){const B=S.bw.slice().sort((a,b)=>a.d<b.d?-1:1),cw=B.at(-1),old=B.filter(b=>Date.parse(b.d)>=Date.now()-31*864e5)[0];
  const dlt=cw&&old&&old!==cw?cw.kg-old.kg:null,tr=trend(),g=S.prof.goal;
- const tgt={masse:'+0,1 à +0,5',seche:'−0,25 à −1',maintien:'−0,2 à +0,2'}[g];
- const ok=tr==null?null:g==='masse'?tr>=.1&&tr<=.5:g==='seche'?tr<=-.25&&tr>=-1:Math.abs(tr)<=.2;
+ const T=WTGT[g]||WTGT.maintien,wk=cw?cw.kg:S.prof.w,kg=x=>(x>0?'+':x<0?'−':'')+fmt2(Math.abs(x*wk/100)),tgt=kg(T[0])+' à '+kg(T[1]);
+ const ok=tr==null?null:tr/wk*100>=T[0]&&tr/wk*100<=T[1];
  return `<section class="col"><div class="row end"><span class="num" style="font-size:72px;line-height:.85">${fmt(cw?cw.kg:S.prof.w)}</span><span class="num mut" style="font-size:24px">kg</span>
   <div class="grow" style="text-align:right">${dlt!=null?`<div class="sm ac b">${dlt>0?'+':''}${fmt(dlt)} kg sur 30 j</div>`:''}<div class="xs mut">${cw?'pesée du '+dShort(cw.d):'poids de départ'}</div></div></div>
  ${B.length>1?lineChart(B.slice(-40).map(b=>[b.d,b.kg]),'Évolution du poids',dShort,' kg'):''}
@@ -257,7 +257,8 @@ function goalSheet(){const p=S.prof,g=goals();
  <div class="card col g4 sm"><div class="kv"><span class="mut">Poids utilisé</span><span>${fmt(wNow())} kg (dernière pesée)</span></div><div class="kv"><span class="mut">Métabolisme de base</span><span>${nf(g.bmr)} kcal</span></div>
  <div class="kv"><span class="mut">Activité + ${p.sess} séances</span><span>× ${fmt2(g.act)}</span></div><div class="kv"><span class="mut">Objectif</span><span>${g.off>0?'+':''}${g.off} kcal</span></div>
  ${p.kadj?`<div class="kv"><span class="mut">Ajustement selon ton poids</span><span>${p.kadj>0?'+':''}${p.kadj} kcal <button class="link" data-a="kadj0">remettre à 0</button></span></div>`:''}
- <div class="kv"><span class="mut">Calcul automatique</span><span>${nf(g.auto)} kcal</span></div></div>
+ <div class="kv"><span class="mut">Calcul automatique</span><span>${nf(g.auto)} kcal</span></div>
+ ${g.floored?`<div class="kv"><span class="mut">Plancher appliqué</span><span>pas moins de ${nf(Math.max(KFLOOR(),g.bmr))} kcal</span></div>`:''}</div>
  <div class="col g6"><label for="kman">Objectif manuel (kcal, facultatif)<input id="kman" type="number" inputmode="numeric" min="1000" max="6000" step="10" value="${p.kman||''}" placeholder="Laisse vide pour le calcul automatique"></label>
  <div class="row"><button class="btn2 grow" data-a="kmanset">Utiliser ce chiffre</button>${p.kman?'<button class="btn2 grow" data-a="kman0">Revenir au calcul</button>':''}</div><p id="kerr" class="sm redc" role="alert" style="margin:0" hidden></p></div>
  <p class="xs mut" style="margin:0">Estimation de départ : métabolisme de repos selon Mifflin-St Jeor (1990), multiplié par un facteur d’activité courant, plus 2,5 % par séance hebdomadaire (approximation de l’appli). Protéines ${p.goal==='seche'?'2,2':'2'} g/kg : les études situent l’utile entre 1,6 et 2,2 g/kg. Lipides ${p.goal==='seche'?'0,8':'1'} g/kg (règle empirique), le reste en glucides. Ajuste selon l’évolution réelle de ton poids.</p>

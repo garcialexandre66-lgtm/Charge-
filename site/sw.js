@@ -1,9 +1,9 @@
-/* Charge 5.2 — cache hors ligne.
+/* Charge 5.3 — cache hors ligne.
    - Seules les réponses HTTP valides (2xx, non opaques) entrent dans le cache : une erreur ne remplace jamais une copie qui marche.
    - La page est gardée sous une seule clé, './' (Cloudflare Pages redirige index.html vers /, et Safari refuse une page en cache issue d'une redirection).
    - Ouverture : réseau, mais si rien n'arrive en 2,5 s on sert la copie en cache. Autres fichiers : cache d'abord, puis réseau.
    - Chaque écriture du cache est attendue (waitUntil) : elle n'est pas perdue si le navigateur arrête le service worker. */
-const C='charge-v5.2',PAGE='./',FILES=['manifest.webmanifest','icon-192.png','icon-512.png','apple-touch-icon.png'];
+const C='charge-v5.3',PAGE='./',FILES=['manifest.webmanifest','icon-192.png','icon-512.png','apple-touch-icon.png'];
 const good=res=>res&&res.ok&&res.type!=='opaque'&&res.type!=='opaqueredirect';
 const clean=async res=>res.redirected?new Response(await res.clone().blob(),{status:res.status,statusText:res.statusText,headers:res.headers}):res.clone();
 async function put(key,res){if(!good(res))return;try{const c=await caches.open(C);await c.put(key,await clean(res))}catch(e){}}

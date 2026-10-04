@@ -1,7 +1,7 @@
 <script>
 "use strict";
 /* ================= data ================= */
-const APPV='5.2';
+const APPV='5.3';
 const $=s=>document.querySelector(s);
 /* rough recovery window in hours per muscle: an app heuristic (large ≈72 h, medium ≈48 h, small ≈36 h), not a measurement */
 const MUS={quadriceps:72,ischios:72,fessiers:72,dorsaux:72,pectoraux:72,lombaires:72,épaules:48,trapèzes:48,biceps:48,triceps:48,adducteurs:48,mollets:36,abdos:36,obliques:36,'avant-bras':36};
@@ -26,7 +26,7 @@ const LIB=[
  /* dos */
  ['tractions','Tractions pronation',['dorsaux','biceps'],'pdc',1,['Prise plus large que les épaules','Monte le menton au-dessus de la barre','Descends bras tendus, sans balancer']],
  ['chinup','Tractions supination',['dorsaux','biceps'],'pdc',1,['Paumes vers toi, prise serrée','Tire les coudes vers les hanches','Plus de biceps que les tractions pronation']],
- ['tirage','Tirage vertical',['dorsaux','biceps'],'poulie',1,['Cuisses bloquées sous les boudins','Tire la barre vers le haut de la poitrine','Poitrine sortie, ne tire pas avec le dos']],
+ ['tirage','Tirage vertical',['dorsaux','biceps'],'poulie',1,['Cuisses bloquées sous les boudins','Tire la barre vers le haut de la poitrine','Poitrine sortie, ne te balance pas en arrière : tire les coudes vers les hanches']],
  ['tirageserre','Tirage vertical prise serrée',['dorsaux','biceps'],'poulie',1,['Poignée triangle ou prise neutre','Coudes qui descendent le long du corps','Serre les omoplates en bas']],
  ['rowing','Rowing assis machine',['dorsaux','trapèzes','biceps'],'machine',1,['Poitrine contre le support','Tire les coudes vers l’arrière','Serre les omoplates une seconde']],
  ['rowpoulie','Rowing assis poulie',['dorsaux','trapèzes','biceps'],'poulie',1,['Genoux légèrement fléchis','Tire vers le nombril, dos droit','Ne te balance pas d’avant en arrière']],
@@ -72,7 +72,7 @@ const LIB=[
  ['tricmachine','Extension triceps machine',['triceps'],'machine',0,['Coudes calés sur le support','Pousse jusqu’aux bras tendus','Retour lent']],
  /* avant-bras */
  ['curlpoignet','Curl poignets',['avant-bras'],'barre',0,['Avant-bras posés sur les cuisses','Seuls les poignets bougent','Séries longues, 15 à 20 reps']],
- ['farmer','Marche du fermier',['avant-bras','trapèzes','abdos'],'halt',1,['Haltères lourds, bras tendus','Marche à petits pas, buste droit','Note les mètres ou les secondes en répétitions']],
+ ['farmer','Marche du fermier',['avant-bras','trapèzes','abdos'],'halt',1,['Haltères lourds, bras tendus','Marche à petits pas, buste droit','Note la distance parcourue, en mètres']],
  /* jambes */
  ['squat','Squat barre',['quadriceps','fessiers','lombaires'],'barre',1,['Barre sur le haut du dos, pieds largeur d’épaules','Descends hanches en arrière, genoux vers l’extérieur','Cuisses au moins parallèles au sol']],
  ['frontsquat','Squat avant',['quadriceps','fessiers'],'barre',1,['Barre sur l’avant des épaules, coudes hauts','Buste très droit','Plus de quadriceps que le squat classique']],
@@ -88,6 +88,7 @@ const LIB=[
  ['legcurl','Leg curl assis',['ischios'],'machine',0,['Genou aligné avec l’axe','Cuisses bloquées par le boudin','Ramène les talons sous le siège']],
  ['legcurlallonge','Leg curl allongé',['ischios'],'machine',0,['Allongé sur le ventre, hanches plaquées','Ramène les talons vers les fesses','Descente lente']],
  ['sdtr','Soulevé de terre roumain',['ischios','fessiers','lombaires'],'barre',1,['Genoux légèrement fléchis et fixes','Fesses en arrière, barre le long des cuisses','Descends jusqu’à l’étirement des ischios']],
+ ['sdtrdb','Soulevé de terre roumain haltères',['ischios','fessiers','lombaires'],'halt',1,['Haltères devant les cuisses, genoux légèrement fléchis','Fesses en arrière, haltères le long des jambes','Descends jusqu’à l’étirement des ischios, dos plat']],
  ['nordic','Nordic curl',['ischios'],'pdc',0,['Chevilles bloquées, à genoux','Descends le plus lentement possible','Rattrape-toi avec les mains en bas']],
  ['hipthrust','Hip thrust',['fessiers','ischios'],'barre',1,['Haut du dos sur le banc, barre sur les hanches','Monte jusqu’à l’alignement épaules-genoux','Serre les fessiers une seconde en haut']],
  ['pont','Pont fessier',['fessiers','ischios'],'pdc',0,['Allongé, pieds près des fesses','Monte le bassin en poussant sur les talons','Ajoute un disque sur les hanches pour progresser']],
@@ -103,7 +104,7 @@ const LIB=[
  ['crunchpoulie','Crunch poulie à genoux',['abdos','obliques'],'poulie',0,['À genoux, corde derrière la tête','Enroule le buste vers les cuisses','Les hanches ne bougent pas']],
  ['releve','Relevés de jambes suspendu',['abdos'],'pdc',0,['Suspendu à la barre, sans balancer','Monte les jambes à l’horizontale','Genoux pliés pour faciliter']],
  ['relevegenoux','Relevés de genoux chaise romaine',['abdos'],'pdc',0,['Avant-bras sur les appuis, dos collé','Monte les genoux vers la poitrine','Enroule le bassin en haut']],
- ['gainage','Gainage (planche)',['abdos','obliques'],'pdc',0,['Sur les avant-bras, corps aligné','Serre fessiers et abdos','Note les secondes tenues en répétitions']],
+ ['gainage','Gainage (planche)',['abdos','obliques'],'pdc',0,['Sur les avant-bras, corps aligné','Serre fessiers et abdos','Note le temps tenu, en secondes']],
  ['russian','Russian twist',['obliques','abdos'],'pdc',0,['Assis, buste incliné en arrière','Tourne les épaules d’un côté à l’autre','Pieds au sol ou décollés pour plus dur']],
  ['roue','Roue abdominale',['abdos'],'pdc',0,['À genoux, roue sous les épaules','Avance en gardant le dos rond','Reviens en contractant les abdos']],
  ['woodchop','Rotation poulie (bûcheron)',['obliques','abdos'],'poulie',0,['Poulie haute, de côté','Tire en diagonale vers la hanche opposée','La rotation vient du buste, bras tendus']]
@@ -118,7 +119,7 @@ const it=(id,s,a,b,rest)=>({id,s,rmin:a,rmax:b??a,...(rest?{rest}:{})});
 const TPL={
  fb:{n:'Full body',lvl:'Débutant',sess:3,info:'3 séances par semaine, 45 à 60 min',progs:[
   {n:'Full body A',items:[it('presse',3,8,12),it('couche',3,6,10),it('tirage',3,8,12),it('epaules',3,8,12),it('crunch',3,12,20)]},
-  {n:'Full body B',items:[it('legcurl',3,10,15),it('chestpress',3,8,12),it('rowing',3,8,12),it('elev',3,12,20),it('legext',3,10,15)]}]},
+  {n:'Full body B',items:[it('legcurl',3,10,15),it('chestpress',3,8,12),it('rowing',3,8,12),it('elev',3,12,20),it('sdtr',3,8,12,120)]}]},
  hb:{n:'Haut / Bas',lvl:'Intermédiaire',sess:4,info:'4 séances par semaine, 60 min',progs:[
   {n:'Haut A',items:[it('couche',4,6,8,150),it('rowing',4,8,12),it('epaules',3,8,12),it('tirage',3,8,12),it('curl',3,10,15),it('triceps',3,10,15)]},
   {n:'Bas A',items:[it('squat',4,6,8,150),it('sdtr',3,8,12,120),it('legext',3,10,15),it('legcurl',3,10,15),it('mollets',4,12,20)]},
@@ -141,12 +142,12 @@ const TPL={
   {n:'Fessiers lourds',items:[it('hipthrust',4,6,8,150),it('smithsquat',3,8,10,120),it('legcurl',3,10,15),it('abduction',3,15,25),it('crunch',3,12,20)]},
   {n:'Quadriceps',items:[it('hack',4,8,12,120),it('fentesmarche',3,10,12),it('legext',3,12,15),it('adduction',3,12,20),it('molletspresse',3,12,20)]},
   {n:'Ischios & fessiers',items:[it('sdtr',4,8,10,150),it('stepup',3,10,12),it('legcurlallonge',3,10,15),it('kickpoulie',3,12,15),it('pont',3,15,20)]}]},
- gh:{cat:'f',n:'Fessiers à la maison',lvl:'Débutant',sess:3,info:'3 séances par semaine, une paire d’haltères suffit',progs:[
+ gh:{cat:'f',n:'Fessiers à la maison',lvl:'Débutant',sess:3,info:'3 séances par semaine, des haltères et une chaise ou un banc stable',progs:[
   {n:'Maison A',items:[it('goblet',3,12,15),it('pont',3,15,20),it('fentes',3,10,12),it('pompes',3,6,12),it('rowdb',3,10,12),it('gainage',3,30,60)]},
-  {n:'Maison B',items:[it('bulgare',3,10,12),it('stepup',3,10,12),it('nordic',3,3,6),it('epaulesdb',3,10,12),it('curlh',3,10,15),it('russian',3,15,20)]}]},
- f5:{n:'Force 5 × 5',lvl:'Avancé',sess:3,info:'3 séances par semaine, charges lourdes',progs:[
+  {n:'Maison B',items:[it('bulgare',3,10,12),it('stepup',3,10,12),it('sdtrdb',3,10,12),it('epaulesdb',3,10,12),it('curlh',3,10,15),it('russian',3,15,20)]}]},
+ f5:{n:'Force 5 × 5',lvl:'Intermédiaire',sess:3,info:'3 séances par semaine, charges lourdes',progs:[
   {n:'Force A',items:[it('squat',5,5,5,180),it('couche',5,5,5,180),it('rowbarre',5,5,5,150)]},
-  {n:'Force B',items:[it('squat',5,5,5,180),it('epaules',5,5,5,150),it('souleve',1,5,5,180)]}]}
+  {n:'Force B',items:[it('squat',5,5,5,180),it('militaire',5,5,5,150),it('souleve',1,5,5,180)]}]}
 };
 /* common foods per 100 g: name, kcal, protein, carbs, fat, usual portion g */
 const FOODS=[['Blanc de poulet cuit',165,31,0,3.6,150],['Riz blanc cuit',130,2.7,28,.3,200],['Riz basmati cuit',121,3.5,25,.4,200],['Pâtes cuites',157,5.8,31,.9,200],
@@ -339,11 +340,15 @@ function lvlOf(xp){return Math.floor(Math.sqrt(xp/120))+1}
    Resting energy: Mifflin-St Jeor equation (Mifflin et al., Am J Clin Nutr 1990), an estimate for groups, not a measure of you.
    × an activity multiplier (common approximation) + 2,5 % per weekly session (app approximation).
    Protein 2 g/kg (2,2 in a cut): research puts the useful range around 1,6 to 2,2 g/kg (Morton et al., Br J Sports Med 2018). */
+/* floor: never below resting energy nor 1 200 kcal (women) / 1 500 kcal (men), the usual limits without medical follow-up; a cut is at most 20 % of expenditure */
+const KFLOOR=()=>S.prof.sex==='f'?1200:1500;
 function goals(){const p=S.prof,w=wNow(),a=(ACT[p.act]||ACT.leger)[2],act=Math.round((a+0.025*Math.min(7,Math.max(0,p.sess)))*1000)/1000;
- const bmr=10*w+6.25*p.h-5*p.a+(p.sex==='f'?-161:5),off={seche:-400,maintien:0,masse:300}[p.goal]||0;
- const auto=Math.round((bmr*act+off+(p.kadj||0))/10)*10,k=p.kman>0?p.kman:auto;
+ const bmr=10*w+6.25*p.h-5*p.a+(p.sex==='f'?-161:5),tdee=bmr*act,off=Math.round(p.goal==='seche'?-Math.min(400,.2*tdee):p.goal==='masse'?300:0);
+ const raw=Math.round((tdee+off+(p.kadj||0))/10)*10,floor=Math.max(KFLOOR(),Math.round(bmr/10)*10),auto=Math.max(floor,raw),k=p.kman>0?p.kman:auto;
  const pr=Math.round((p.goal==='seche'?2.2:2)*w),li=Math.round(w*(p.goal==='seche'?.8:1));
- return {k,auto,man:p.kman>0,p:pr,l:li,g:Math.max(0,Math.round((k-pr*4-li*9)/4)),bmr:Math.round(bmr),act,off}}
+ return {k,auto,man:p.kman>0,p:pr,l:li,g:Math.max(0,Math.round((k-pr*4-li*9)/4)),bmr:Math.round(bmr),act,off,floored:raw<floor}}
+/* weekly change targets in % of body weight (Helms et al., JISSN 2014: 0,5 à 1 % par semaine en sèche) */
+const WTGT={masse:[.25,.5],seche:[-1,-.5],maintien:[-.25,.25]};
 const nutDay=d=>S.food.filter(f=>f.d===d).reduce((a,f)=>({k:a.k+f.k,p:a.p+f.p,g:a.g+f.g,l:a.l+f.l}),{k:0,p:0,g:0,l:0});
 const waterN=d=>S.water[d]?.n||0;
 /* weekly weight trend (kg/week), least squares over the last 28 days; needs 4 weigh-ins over ≥ 14 days */
@@ -354,11 +359,11 @@ function trend(){const B=S.bw.filter(b=>Date.parse(b.d)>=Date.now()-28*864e5).so
 /* an adjustment is suggested only with enough data: the trend above AND meals logged at least 5 of the last 7 days */
 function adjustTip(){if(S.prof.kman>0)return null;const r=trend();if(r==null)return null;
  const logged=[...Array(7)].map((_,i)=>addDays(today(),-i-1)).filter(d=>nutDay(d).k>800).length;if(logged<5)return null;
- if(S.prof.kadjAt&&Date.now()-Date.parse(S.prof.kadjAt)<14*864e5)return null;const g=S.prof.goal;let d=0,why='';
- if(g==='masse'){if(r<.1){d=150;why='Ton poids ne monte presque pas'}else if(r>.5){d=-150;why='Tu prends plus de 0,5 kg par semaine'}}
- if(g==='seche'){if(r>-.25){d=-150;why='Ton poids ne descend presque pas'}else if(r<-1){d=150;why='Tu perds plus de 1 kg par semaine'}}
- if(g==='maintien'){if(r>.2){d=-150;why='Ton poids monte'}else if(r<-.2){d=150;why='Ton poids descend'}}
- return d?{d,r,why,logged}:null}
+ if(S.prof.kadjAt&&Date.now()-Date.parse(S.prof.kadjAt)<14*864e5)return null;const g=S.prof.goal,T=WTGT[g]||WTGT.maintien,pc=r/wNow()*100;let d=0,why='';
+ if(pc<T[0]){d=150;why=g==='seche'?'Tu perds plus de 1 % de ton poids par semaine':g==='masse'?'Ton poids ne monte presque pas':'Ton poids descend'}
+ else if(pc>T[1]){d=-150;why=g==='seche'?'Ton poids ne descend presque pas':g==='masse'?'Tu prends plus de 0,5 % de ton poids par semaine':'Ton poids monte'}
+ const kadj=(S.prof.kadj||0)+d;if(d&&(kadj<-500||kadj>500))return null;if(d<0&&goals().auto+d<Math.max(KFLOOR(),goals().bmr))return null;
+ return d?{d,r,pc,why,logged}:null}
 
 /* ================= mutations =================
    Every record carries a version (ver) and a time (u). A deletion remembers the version it deleted, forever:
@@ -366,11 +371,11 @@ function adjustTip(){if(S.prof.kman>0)return null;const r=trend();if(r==null)ret
 const tombOf=(c,k)=>S.del?.[c+':'+k];
 function stamp(o,c,k){const d=c?tombOf(c,k):null,base=d&&typeof d==='object'?d.v||0:0;o.ver=Math.max(o.ver||0,base)+1;o.u=Date.now();return o}
 const touch=f=>{S.mt=S.mt||{};S.mt[f]=Date.now()};
-const tomb=(c,k,ver)=>{S.del=S.del||{};S.del[c+':'+k]={t:Date.now(),v:ver||0}};
+const tomb=(c,k,ver)=>{if(ver==null){const L=S[c];ver=Array.isArray(L)?L.find(x=>COLL[c]?.(x)===k)?.ver:L?.[k]?.ver}S.del=S.del||{};const d=S.del[c+':'+k];S.del[c+':'+k]={t:Date.now(),v:Math.max(ver||0,d&&typeof d==='object'?d.v||0:0)}};
 function addLog(l){l.id=l.id||'l'+uid();if(!l.lt)l.lt=ltOf(l.e);if(!l.un)l.un=uOf(l.e);stamp(l,'logs',l.id);S.logs.push(l);return l}
 function delLog(id){const l=S.logs.find(x=>x.id===id);S.logs=S.logs.filter(x=>x.id!==id);tomb('logs',id,l?.ver);return l}
 function startSession(){const p=prog(),s=stamp({id:'s'+uid(),start:Date.now(),end:null,state:'active',p:p.id,pn:p.n,plan:previewPlan(),dev:DEV});S.sess.push(s);setPref(s.id);REV++;return s}
-const ensureSession=()=>active()||startSession();
+function ensureSession(){const a=active();if(a&&isStale(a)&&key(lastAct(a))!==today()){if(sWork(a.id).length)closeSession(a);else delSession(a.id);REV++;return active()&&!isStale(active())?active():startSession()}return a||startSession()}
 function delSession(id){const s=sessById(id);sLogs(id).forEach(l=>delLog(l.id));S.sess=S.sess.filter(x=>x.id!==id);tomb('sess',id,s?.ver);if(PREF===id)setPref('')}
 function closeSession(s,{note,mood}={}){const L=sLogs(s.id),lastT=L.at(-1)?.t||s.start;
  s.state='done';s.end=Date.now()-lastT>2*36e5?lastT+5*6e4:Math.max(Date.now(),lastT);if(note!=null)s.note=note;if(mood)s.mood=mood;stamp(s);if(PREF===s.id)setPref('');
@@ -412,13 +417,14 @@ async function backup(why,raw){raw=raw??JSON.stringify(S);let where='';const at=
 async function listBackups(){let L=[];try{L=(await IDB.all('bak')).map(b=>({...b,src:'idb'}))}catch(e){}try{(JSON.parse(localStorage.getItem('charge-bak')||'[]')||[]).forEach(b=>{if(!L.some(x=>x.at===b.at))L.push({...b,src:'ls'})})}catch(e){}return L.sort((a,b)=>b.at-a.at)}
 
 /* ---------- migration v1 → v5 (no information invented) ---------- */
+const okId=x=>typeof x==='string'&&/^[\w-]{1,80}$/.test(x);
 function migrate(o){if(!o||typeof o!=='object'||Array.isArray(o))throw new Error('format');o=structuredClone(o);const v=o.v||1;
  if(!Array.isArray(o.progs)){o.progs=[{id:'A',n:'Séance A',items:Array.isArray(o.plan)?o.plan:[]}];o.cur='A'}
  delete o.plan;
  const cl=(v,a,b,d)=>{v=Math.round(Number(v));return isFinite(v)?Math.min(b,Math.max(a,v)):d};
  const item=x=>{const r=cl(x.rmin??x.r,1,10000,10),y={id:String(x.id),s:cl(x.s,1,20,3),rmin:r,rmax:Math.max(r,cl(x.rmax??r,1,10000,r))};if(x.rest)y.rest=cl(x.rest,10,900,90);if(x.ss)y.ss=1;if(x.extra)y.extra=1;if(x.orig)y.orig=String(x.orig);if(x.n)y.n=String(x.n);return y};
- o.progs=o.progs.map(p=>({id:String(p.id),n:String(p.n||'Séance'),u:p.u||0,ver:p.ver||0,items:dedupe((Array.isArray(p.items)?p.items:[]).filter(x=>x&&x.id!=null).map(item))}));
- const ex=Array.isArray(o.ex)?o.ex:[];
+ o.progs=o.progs.filter(p=>p&&okId(String(p.id))).map(p=>({id:String(p.id),n:String(p.n||'Séance'),u:p.u||0,ver:p.ver||0,items:dedupe((Array.isArray(p.items)?p.items:[]).filter(x=>x&&okId(String(x.id))).map(item))}));
+ const ex=(Array.isArray(o.ex)?o.ex:[]).filter(e=>e&&okId(e.id));
  LIB.forEach(l=>{const e=ex.find(x=>x.id===l.id),{q,...b}=l;if(e){e.n=b.n;e.m=b.m.slice();e.k=b.k;e.c=b.c;delete e.q}else ex.push(structuredClone(b))});
  /* v4 stored the unit in e.u, the same field as the change time: a text value is a unit, a number is a time */
  ex.forEach(e=>{e.k=KINDS[e.k]?e.k:'machine';e.c=e.c?1:0;e.seat=e.seat||'';e.m=Array.isArray(e.m)&&e.m.length?e.m:['pectoraux'];
@@ -449,12 +455,13 @@ function migrate(o){if(!o||typeof o!=='object'||Array.isArray(o))throw new Error
    if(meta.note)s.note=meta.note;if(meta.mood)s.mood=meta.mood;return s});
   o.logs.forEach(l=>{l.sid='s'+key(l.t).replace(/-/g,'')});
   o.sess.filter(s=>s.state==='done').forEach(s=>{const m=mondayOf(key(s.start));if(!o.wkGoal[m])o.wkGoal[m]={g:P.sess,u:0}})}
- o.sess=o.sess.map(s=>({...s,plan:dedupe((Array.isArray(s.plan)?s.plan:[]).filter(x=>x&&x.id!=null).map(item))}));
+ o.sess=o.sess.filter(s=>s&&okId(s.id)).map(s=>({...s,plan:dedupe((Array.isArray(s.plan)?s.plan:[]).filter(x=>x&&okId(String(x.id))).map(item))}));
  /* every set keeps the measure it was recorded with (filled from the exercise definition known today) */
  const exM=new Map(ex.map(e=>[e.id,e]));
  o.logs=o.logs.map(l=>{const y={...l};y.id=y.id||'l'+y.t.toString(36)+'-'+String(y.e).slice(0,12);if(y.f&&!FEEL[y.f])delete y.f;if(y.dr&&!y.dr.length)delete y.dr;y.u=y.u||y.t;
   const e=exM.get(y.e)||{id:y.e,k:'machine'};if(!LTL[y.lt])y.lt=ltE(e);if(!UL[y.un])y.un=unE(e);return y});
- const ids=new Set();o.logs=o.logs.filter(l=>!ids.has(l.id)&&ids.add(l.id));
+ const ids=new Set();o.logs=o.logs.filter(l=>okId(l.id)&&okId(l.e)&&okId(l.sid)&&!ids.has(l.id)&&ids.add(l.id));
+ o.food=o.food.filter(f=>okId(f.id));o.tmeals=o.tmeals.filter(t=>okId(t.id));
  delete o.sessions;delete o.day;delete o.chal;delete o.goalsExDone;
  o.pn=o.pn||'Mon programme';o.cur=o.progs.some(p=>p.id===o.cur)?o.cur:o.progs[0]?.id||'';o.v=5;return o}
 const fromJSON=j=>migrate(JSON.parse(j));

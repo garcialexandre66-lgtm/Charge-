@@ -10,12 +10,12 @@ function sheet(h,k){const ov=$('#ov'),old=ov.querySelector('.sheet>div'),same=ol
  if(fk){const t=fk.id?document.getElementById(fk.id):[...box.querySelectorAll('[data-a]')].find(e=>e.dataset.a===fk.a&&(e.dataset.v??'')===(fk.v??''));if(t){t.focus({preventScroll:true});return}}
  if(!same)(box.querySelector('#sheet-title')||box.querySelector('button,input'))?.focus({preventScroll:true})}
 function openLayer(h,k){const ov=$('#ov');if(!ov.innerHTML)opener=document.activeElement;curSheet=k;ov.innerHTML=h;setInert(true);(ov.querySelector('[id$="-title"]')||ov.querySelector('button'))?.focus({preventScroll:true})}
-function close(){clearInterval(timer);$('#ov').innerHTML='';curSheet=null;view.st=null;view.delprog=0;view.mood=null;view.note=null;view.rec=null;view.qq=null;view.el=null;
- if(view.rest){view.rest=null;persistRest()}setInert(false);
+function close(){const k0=curSheet;clearInterval(timer);$('#ov').innerHTML='';curSheet=null;view.st=null;view.delprog=0;view.mood=null;view.note=null;view.rec=null;view.qq=null;view.el=null;
+ if(view.rest&&k0==='rest'){view.rest=null;persistRest()}setInert(false);
  /* the screen behind is redrawn: give focus back to the same control (same id, or same action + value) */
- const k=opener&&opener!==document.body?{id:opener.id,a:opener.dataset?.a,v:opener.dataset?.v}:null;opener=null;render();
+ const k=opener&&opener!==document.body?{id:opener.id,a:opener.dataset?.a,v:opener.dataset?.v}:null;opener=null;curSheet=null;render();if(view.rest&&k0!=='rest')timer=setInterval(tickRest,250);
  if(k){const t=(k.id&&document.getElementById(k.id))||[...document.querySelectorAll('#app [data-a],#nav [data-a]')].find(e=>e.dataset.a===k.a&&(e.dataset.v??'')===(k.v??''));if(t)t.focus({preventScroll:true})}}
-const closeOv=()=>{clearInterval(timer);$('#ov').innerHTML='';curSheet=null;setInert(false)};
+const closeOv=()=>{clearInterval(timer);$('#ov').innerHTML='';curSheet=null;setInert(false);if(view.rest)timer=setInterval(tickRest,250)};
 const stOf=()=>view.st;
 function syncKg(){const st=view.st,i=$('#kgin');if(st&&i){const n=parseNum(i.value);if(isFinite(n))st.kg=n}}
 function clampKg(id,v){const K=LIM.kg[ltOf(id)];return Math.min(K[1],Math.max(K[0],Math.round(v*100)/100))}
@@ -60,13 +60,13 @@ const A={
   BAD=null;S=SEED();view={};tab='seance';persistLocal();REV++;render();toast('Appli remise à zéro')},
  kg:v=>{const st=stOf();if(!st)return;syncKg();st.kg=clampKg(st.id,st.kg+ +v*incOf(st.id));setSheet(st.id)},
  reps:v=>{const st=stOf();if(!st)return;syncKg();st.r=clampR(st.id,+v);setSheet(st.id)},
- feel:v=>{const st=stOf();syncKg();st.f=v;setSheet(st.id)},
- warmtog:()=>{const st=stOf();syncKg();st.w=!st.w;if(st.w)st.dr=null;setSheet(st.id)},
+ feel:v=>{const st=stOf();if(!st)return;syncKg();st.f=v;setSheet(st.id)},
+ warmtog:()=>{const st=stOf();if(!st)return;syncKg();st.w=!st.w;if(st.w)st.dr=null;setSheet(st.id)},
  again:()=>{const id=stOf().id,tg=target(id);if(!tg)return;closeOv();logSet(id,tg.kg,tg.r,'ok')},
- validate:()=>{const st=stOf();if(!st)return;const v=readSet(st.id,'#kgin',st.r);if(!v)return;st.kg=v.kg;
+ validate:()=>{const st=stOf();if(!st)return;const v=readSet(st.id,'#kgin',st.r);if(!v)return;st.kg=v.kg;if(!st.w)view.rows?.[st.id]?.splice(0,1);
   if(st.dr&&st.dr.some(d=>!inR(d.kg,LIM.kg.load)||!inR(d.r,[1,100]))){const e=$('#seterr');e.hidden=false;e.textContent='Palier dégressif invalide.';return}
   closeOv();logSet(st.id,v.kg,v.r,st.f,st.dr,st.w)},
- warm:v=>{const st=stOf();const [kg,r]=v.split(':').map(Number);logSet(st.id,kg,r,null,null,true)},
+ warm:v=>{const st=stOf();if(!st)return;const [kg,r]=v.split(':').map(Number);logSet(st.id,kg,r,null,null,true)},
  dellog:v=>{const l=delLog(v);if(!l)return;const gone=reconcileBadges();save();
   if(curSheet==='set')setSheet(l.e);else if(curSheet==='elog')close();else render();
   toast('Série supprimée'+(gone.length?' · trophée retiré : '+esc(gone[0].n):''),['restorelog','Annuler',JSON.stringify(l)])},
@@ -76,7 +76,7 @@ const A={
  efeel:v=>{const E=view.el;E.kg=parseNum($('#ekg').value);E.r=parseNum($('#er').value);E.f=v;editLogSheet(E.lid?{lid:E.lid}:{sid:E.sid,e:E.e})},
  ewarm:()=>{const E=view.el;E.kg=parseNum($('#ekg').value);E.r=parseNum($('#er').value);E.w=!E.w;if(E.w)E.dr=null;editLogSheet(E.lid?{lid:E.lid}:{sid:E.sid,e:E.e})},
  edropoff:()=>{const E=view.el;E.kg=parseNum($('#ekg').value);E.r=parseNum($('#er').value);E.dr=null;editLogSheet(E.lid?{lid:E.lid}:{sid:E.sid,e:E.e})},
- savelog:()=>{const E=view.el,l=E.lid?S.logs.find(x=>x.id===E.lid):null,id=l?l.e:E.e,v=readSet(id,'#ekg',parseNum($('#er').value));if(!v)return;
+ savelog:()=>{const E=view.el,l=E.lid?S.logs.find(x=>x.id===E.lid):null,id=l?l.e:E.e,i=$('#ekg'),v=checkSet(id,i?.value??'',String(parseNum($('#er').value)),$('#seterr'),l?ltL(l):undefined,l?unL(l):undefined);if(!v){i?.setAttribute('aria-invalid','true');return}
   if(l){l.kg=v.kg;l.r=v.r;if(E.w){l.w=1;delete l.f;delete l.dr}else{delete l.w;l.f=E.f;if(E.dr)l.dr=E.dr;else delete l.dr}stamp(l)}
   else{const s=sessById(E.sid);if(!s)return close();const L=sLogs(s.id),t=Math.max(s.start,L.at(-1)?.t||s.start)+6e4;
    if(!s.plan.some(p=>p.id===id)){s.plan.push({id,s:1,rmin:v.r,rmax:v.r,n:exo(id).n,extra:1})}if(s.end&&t>s.end)s.end=t;stamp(s);
@@ -89,17 +89,19 @@ const A={
  rmextra:v=>{const a=active();if(!a)return;a.plan=a.plan.filter(x=>x.id!==v||!x.extra);stamp(a);save();close()},
  exdetail:v=>{const from=tab==='prog'?(view.page==='lib'?'lib':view.page==='sess'?'sess':'prog'):tab,lm=view.lm,lq=view.lq,fsid=view.sid;if($('#ov').innerHTML){closeOv();view.st=null}go('prog',{page:'ex',ex:v,from,lm,lq,fsid})},
  demopause:()=>{view.demoPause=!view.demoPause;render()},
- togdemo:()=>{const st=stOf();syncKg();view.showDemo=!view.showDemo;setSheet(st.id)},
+ togdemo:()=>{const st=stOf();if(!st)return;syncKg();view.showDemo=!view.showDemo;setSheet(st.id)},
  lm:v=>{view.lm=v;render()},
  addto:v=>addToSheet(v),
  addtoprog:v=>{const id=view.addto,p=S.progs.find(x=>x.id===v);if(!p||!id)return;const c=exo(id).c;p.items.push({id,s:3,rmin:c?8:10,rmax:c?10:15});stamp(p);save();close();toast(esc(exo(id).n)+' ajouté à '+esc(p.n))},
- addtoday:v=>{const a=ensureSession();if(!a.plan.some(p=>p.id===v)){a.plan.push({id:v,s:3,rmin:10,rmax:12,extra:1,n:exo(v).n});stamp(a)}save();close();go('seance');toast('Ajouté à la séance en cours')},
+ addtoday:v=>{const a=ensureSession();if(!a.plan.some(p=>p.id===v)){a.plan.push({...extraItem(v),n:exo(v).n});stamp(a)}save();close();go('seance');toast('Ajouté à la séance en cours')},
+ restmin:()=>{clearInterval(timer);$('#ov').innerHTML='';curSheet=null;setInert(false);render();timer=setInterval(tickRest,250)},
+ restopen:()=>{if(view.rest)buildRest()},
  rest:v=>{const R=view.rest;if(!R)return;R.end+= +v*1000;R.total=Math.max(15,R.total+ +v);if(R.end<Date.now())R.end=Date.now();R.beeped=false;persistRest();lastLeft=-1;clearInterval(timer);timer=setInterval(tickRest,250);tickRest()},
  skiprest:()=>{clearInterval(timer);const id=view.rest?.id;view.rest=null;persistRest();closeOv();render();const nx=id&&afterRest(id);if(nx)return setSheet(nx);finish()},
  recok:()=>{const th=view.rec?.then;view.rec=null;if(th){closeOv();return setSheet(th)}if(view.rest)return buildRest();close()},
- drop:v=>{const st=stOf();syncKg();if(v==='off')st.dr=null;else{st.dr=st.dr||[];const prev=(st.dr.at(-1)||st).kg;st.dr.push({kg:Math.max(0,rnd(prev*.8,st.id)),r:st.r})}setSheet(st.id)},
- dropkg:v=>{const st=stOf();syncKg();const [k,d]=v.split(':').map(Number),x=st.dr[k];x.kg=Math.max(0,Math.min(500,Math.round((x.kg+d*incOf(st.id))*100)/100));setSheet(st.id)},
- dropr:v=>{const st=stOf();syncKg();const [k,d]=v.split(':').map(Number),x=st.dr[k];x.r=Math.max(1,Math.min(100,x.r+d));setSheet(st.id)},
+ drop:v=>{const st=stOf();if(!st)return;syncKg();if(v==='off')st.dr=null;else{st.dr=st.dr||[];const prev=(st.dr.at(-1)||st).kg;st.dr.push({kg:Math.max(0,rnd(prev*.8,st.id)),r:st.r})}setSheet(st.id)},
+ dropkg:v=>{const st=stOf();if(!st)return;syncKg();const [k,d]=v.split(':').map(Number),x=st.dr[k];x.kg=Math.max(0,Math.min(500,Math.round((x.kg+d*incOf(st.id))*100)/100));setSheet(st.id)},
+ dropr:v=>{const st=stOf();if(!st)return;syncKg();const [k,d]=v.split(':').map(Number),x=st.dr[k];x.r=Math.max(1,Math.min(100,x.r+d));setSheet(st.id)},
  ss:v=>{const p=prog(),P=p.items,i=+v;P[i].ss=!P[i].ss;if(P[i].ss&&P[i+1])delete P[i+1].ss;if(!P[i].ss)delete P[i].ss;stamp(p);save();render();planSheet()},
  png:async v=>{try{const blob=await bilanPNG(v);if(await saveFile('charge-bilan-'+v+'.png',blob,'image/png'))toast('Image exportée')}catch(e){toast('Export impossible ici')}},
  sharepng:async v=>{try{const blob=await sessionPNG(v),fn='charge-seance-'+key(sessById(v).start)+'.png';
@@ -112,8 +114,8 @@ const A={
   const nb=evalBadges();chalCheck();closeOv();view.mood=null;view.note=null;render();winScreen(a.id,nb)},
  winok:()=>{close();scrollTo(0,0)},
  setgoal:v=>{const n=parseNum($('#goalkg').value);if(!inR(n,LIM.goal)){$('#goalkg').focus();return toast('Indique une charge entre 1 et 500 kg')}const b=best(v)||0;if(n<=b)return toast('Vise plus haut que ton record actuel ('+fmt(b)+' kg)');
-  S.goalsEx=S.goalsEx||{};S.goalsEx[v]={kg:n,from:b,set:today(),u:Date.now()};save();render();toast('Objectif fixé : '+fmt(n)+' kg')},
- delgoal:v=>{if(S.goalsEx)delete S.goalsEx[v];tomb('goalsEx',v);save();render()},
+  S.goalsEx=S.goalsEx||{};S.goalsEx[v]=stamp({kg:n,from:b,set:today(),ver:S.goalsEx[v]?.ver||0},'goalsEx',v);save();render();toast('Objectif fixé : '+fmt(n)+' kg')},
+ delgoal:v=>{tomb('goalsEx',v);if(S.goalsEx)delete S.goalsEx[v];save();render()},
  badge:v=>{const b=BADGES.find(x=>x.id===v),pr=badgeProg(b,CTX());toast(esc(b.n)+' : '+esc(b.d)+(S.badges?.[v]?' · obtenu le '+dShort(S.badges[v].d):b.goal>1&&!['bench','squat','dead'].includes(b.k)?' · '+(b.k==='vol'?fmt(pr.cur/1000)+' / '+fmt(b.goal/1000)+' t':Math.floor(pr.cur)+' / '+b.goal):''))},
  pickprog:v=>{if(active())return toast('Une séance est en cours : termine-la d’abord.');S.cur=v;touch('cur');save();if(view.page==='progs')view={};render();scrollTo(0,0)},
  editplan:v=>{if(v){S.cur=v;touch('cur')}view.delprog=0;render();planSheet()},
@@ -121,18 +123,18 @@ const A={
  addprog:()=>{const id='p'+uid();S.progs.push(stamp({id,n:'Séance '+String.fromCharCode(65+S.progs.length),items:[]}));S.cur=id;touch('cur');save();render();planSheet()},
  mv:v=>{const p=prog(),P=p.items,i=+v;if(i>0)[P[i-1],P[i]]=[P[i],P[i-1]];stamp(p);save();render();planSheet()},
  rm:v=>{const p=prog();p.items.splice(+v,1);stamp(p);save();render();planSheet()},
- delprog:v=>{if(v==='ask'){view.delprog=1;return planSheet()}if(v==='0'){view.delprog=0;return planSheet()}const id=S.cur;S.progs=S.progs.filter(p=>p.id!==id);tomb('progs',id);S.cur=S.progs[0].id;touch('cur');view.delprog=0;save();render();planSheet()},
+ delprog:v=>{if(v==='ask'){view.delprog=1;return planSheet()}if(v==='0'){view.delprog=0;return planSheet()}const id=S.cur;tomb('progs',id);S.progs=S.progs.filter(p=>p.id!==id);S.cur=S.progs[0].id;touch('cur');view.delprog=0;save();render();planSheet()},
  pickex:v=>{view.newex=0;pickSheet(v)},
  addex:v=>{const m=view.pick||'';
   if(m==='plan'){const p=prog(),c=exo(v).c;p.items.push({id:v,s:3,rmin:c?8:10,rmax:c?10:15});stamp(p);save();render();planSheet();return toast(esc(exo(v).n)+' ajouté à la séance')}
   if(m.startsWith('sess:')){closeOv();view.el=null;return editLogSheet({sid:m.slice(5),e:v})}
-  const a=ensureSession();if(!a.plan.some(p=>p.id===v)){a.plan.push({id:v,s:3,rmin:10,rmax:12,extra:1,n:exo(v).n});stamp(a)}save();closeOv();render();setSheet(v)},
+  const a=ensureSession();if(!a.plan.some(p=>p.id===v)){a.plan.push({...extraItem(v),n:exo(v).n});stamp(a)}save();closeOv();render();setSheet(v)},
  createex:()=>{const n=$('#newex').value.trim();if(!n){$('#newerr').hidden=false;$('#newex').focus();return}
   const m=[$('#newm').value];if($('#newm2').value&&$('#newm2').value!==m[0])m.push($('#newm2').value);const id='x'+uid();
   const e={id,n:n.slice(0,60),m,k:$('#newk').value,c:+$('#newc').value,seat:''};if($('#newlt').value!==(e.k==='pdc'?'bw':'load'))e.lt=$('#newlt').value;if($('#newu').value!=='reps')e.unit=$('#newu').value;
   S.ex.push(stamp(e));A.addex(id)},
  tpl:v=>{view.tpl=v;render()},
- usetpl:v=>{S.progs.forEach(p=>tomb('progs',p.id));S.progs=progsFrom(v);S.cur=S.progs[0].id;S.pn=TPL[v].n;touch('cur');touch('pn');view.tpl='';save();render();toast('Programme « '+TPL[v].n+' » activé'+(active()?' · la séance en cours garde son plan':''))},
+ usetpl:v=>{S.progs.forEach(p=>tomb('progs',p.id));S.progs=progsFrom(v);S.progs.forEach(p=>stamp(p,'progs',p.id));S.cur=S.progs[0].id;S.pn=TPL[v].n;touch('cur');touch('pn');view.tpl='';save();render();toast('Programme « '+TPL[v].n+' » activé'+(active()?' · la séance en cours garde son plan':''))},
  /* the sets already noted keep their own measure (l.lt, l.un): only new sets use the new one */
  exlt:v=>{const [id,k]=v.split('|'),e=S.ex.find(x=>x.id===id);if(!e||!LTL[k])return;e.lt=k;stamp(e,'ex',id);view.exset=1;view.mode=null;save();render()},
  exu:v=>{const [id,k]=v.split('|'),e=S.ex.find(x=>x.id===id);if(!e||!UL[k])return;e.unit=k;stamp(e,'ex',id);view.exset=1;view.mode=null;save();render()},
@@ -140,7 +142,7 @@ const A={
  ym:v=>{view.ym=v;view.coach=null;render()},
  more:()=>{view.more=1;render()},rg:v=>{view.rg=v;render()},mode:v=>{view.mode=v;render()},
  coach:()=>runCoach(),coachstop:()=>coachCtl?.abort(),
- delex:v=>{S.ex=S.ex.filter(e=>e.id!==v);tomb('ex',v);save();A.back()},
+ delex:v=>{tomb('ex',v);S.ex=S.ex.filter(e=>e.id!==v);save();A.back()},
  smood:v=>{const [sid,k]=v.split('|'),s=sessById(sid);if(!s)return;s.mood=k;stamp(s);save();render()},
  delsess:v=>{if(v.startsWith('ask:')){view.delsess=v.slice(4);return render()}if(v==='no'){view.delsess=null;return render()}
   delSession(v);const gone=reconcileBadges();save();view={};render();toast('Séance supprimée · stats recalculées'+(gone.length?' · trophée retiré : '+esc(gone[0].n):''))},
@@ -148,13 +150,13 @@ const A={
  /* corps */
  ct:v=>{view={ct:v};render()},off:v=>{view.off=+v;render()},ms:v=>{view.ms=v;render()},
  savebw:()=>{const v=parseNum($('#bwin').value);if(!inR(v,LIM.bw)){$('#bwin').setAttribute('aria-invalid','true');$('#bwin').focus();return toast('Indique un poids entre 25 et 350 kg')}
-  S.bw=S.bw.filter(b=>b.d!==today());S.bw.push(stamp({d:today(),kg:Math.round(v*10)/10}));S.prof.w=v;touch('prof');save();render();toast('Pesée enregistrée · objectif nutrition recalculé')},
- delbw:v=>{S.bw=S.bw.filter(b=>b.d!==v);tomb('bw',v);save();render()},
+  const ob=S.bw.find(b=>b.d===today());S.bw=S.bw.filter(b=>b.d!==today());S.bw.push(stamp({d:today(),kg:Math.round(v*10)/10,ver:ob?.ver||0},'bw',today()));S.prof.w=v;touch('prof');save();render();toast('Pesée enregistrée · objectif nutrition recalculé')},
+ delbw:v=>{tomb('bw',v);S.bw=S.bw.filter(b=>b.d!==v);save();render()},
  measure:()=>measureSheet(),
  /* same day: only the fields typed are updated, the others are kept */
  savemeas:()=>{const o={};let n=0,bad=0;MEAS.forEach(([k])=>{const raw=$('#m_'+k).value;if(raw==='')return;const v=parseNum(raw);if(inR(v,LIM.meas)){o[k]=v;n++}else{bad++;$('#m_'+k).setAttribute('aria-invalid','true')}});
   const e=$('#merr');if(bad||!n){e.hidden=false;e.textContent=bad?'Chaque mesure doit être entre 10 et 250 cm.':'Indique au moins une mesure.';return}
-  const old=S.meas.find(m=>m.d===today());S.meas=S.meas.filter(m=>m.d!==today());S.meas.push(stamp({...(old||{}),...o,d:today()}));save();close();toast('Mesures enregistrées'+(old?' · fusionnées avec celles du jour':''))},
+  const old=S.meas.find(m=>m.d===today());S.meas=S.meas.filter(m=>m.d!==today());S.meas.push(stamp({...(old||{}),...o,d:today()},'meas',today()));save();close();toast('Mesures enregistrées'+(old?' · fusionnées avec celles du jour':''))},
  addphoto:()=>$('#photofile').click(),
  ptap:v=>{const s=view.psel||[];view.psel=s.includes(v)?s.filter(x=>x!==v):[...s,v].slice(-2);render()},
  psel:()=>{view.psel=[];render()},
@@ -172,9 +174,9 @@ const A={
  kadj0:()=>{S.prof.kadj=0;touch('prof');save();render();goalSheet()},
  kmanset:()=>{const n=parseNum($('#kman').value),e=$('#kerr');if(!inR(n,LIM.kman)){e.hidden=false;e.textContent='Entre 1 000 et 6 000 kcal.';return}S.prof.kman=Math.round(n);touch('prof');save();render();goalSheet();toast('Objectif fixé à '+nf(n)+' kcal')},
  kman0:()=>{S.prof.kman=0;touch('prof');save();render();goalSheet()},
- tipyes:v=>{S.prof.kadj=(S.prof.kadj||0)+ +v;S.prof.kadjAt=today();touch('prof');save();render();toast('Objectif ajusté : '+nf(goals().k)+' kcal')},
+ tipyes:v=>{S.prof.kadj=Math.max(-500,Math.min(500,(S.prof.kadj||0)+ +v));S.prof.kadjAt=today();touch('prof');save();render();toast('Objectif ajusté : '+nf(goals().k)+' kcal')},
  tipno:()=>{S.prof.kadjAt=today();touch('prof');save();render()},
- water:v=>{const d=view.nd||today(),n=Math.max(0,Math.min(40,waterN(d)+ +v));S.water[d]={n,u:Date.now()};save();render();const nc=chalCheck();if(nc)toast('Défi réussi : '+esc(nc.n))},
+ water:v=>{const d=view.nd||today(),n=Math.max(0,Math.min(40,waterN(d)+ +v));S.water[d]=stamp({n,ver:S.water[d]?.ver||0},'water',d);save();render();const nc=chalCheck();if(nc)toast('Défi réussi : '+esc(nc.n))},
  copyy:()=>{const d=view.nd||today(),yk=addDays(d,-1);S.food.filter(f=>f.d===yk).forEach(f=>S.food.push(stamp({...f,id:uid(),d})));save();render();toast('Repas de la veille copiés')},
  addfood:v=>{view.fq='';view.ft=null;foodSheet(v||mealNow())},
  ft:v=>{view.ft=v;foodSheet()},
@@ -185,20 +187,20 @@ const A={
  addfoodq:()=>{const f=view.qf,q=parseNum($('#qq').value);if(!inR(q,LIM.q)){$('#qerr').hidden=false;return $('#qq').focus()}const d=view.nd||today();
   S.food.push(stamp({id:uid(),d,m:view.fm,n:f.n,q,...per(f,q),k100:f.k100,p100:f.p100,g100:f.g100,l100:f.l100}));save();close();const nc=chalCheck();toast(nc?'Défi réussi : '+esc(nc.n):esc(f.n)+' ajouté')},
  editfood:v=>{const e=S.food.find(f=>f.id===v);if(e)qtySheet({n:e.n,k100:e.k100,p100:e.p100,g100:e.g100,l100:e.l100,q:findFood(e.n)?.q},e)},
- savefoodq:()=>{const e=view.qe,q=parseNum($('#qq').value);if(!inR(q,LIM.q)){$('#qerr').hidden=false;return}Object.assign(e,{q,m:$('#fm2').value,...per(view.qf,q)});stamp(e);save();close()},
- delfood:v=>{const e=S.food.find(f=>f.id===v);S.food=S.food.filter(f=>f.id!==v);tomb('food',v);save();close();toast('Aliment supprimé',['restorefood','Annuler',JSON.stringify(e)])},
+ savefoodq:()=>{const e=S.food.find(f=>f.id===view.qe?.id),q=parseNum($('#qq').value);if(!e)return close();if(!inR(q,LIM.q)){$('#qerr').hidden=false;return}Object.assign(e,{q,m:$('#fm2').value,...per(view.qf,q)});stamp(e);save();close()},
+ delfood:v=>{const e=S.food.find(f=>f.id===v);tomb('food',v);S.food=S.food.filter(f=>f.id!==v);save();close();toast('Aliment supprimé',['restorefood','Annuler',JSON.stringify(e)])},
  restorefood:v=>{try{const f=JSON.parse(v);delete S.del?.['food:'+f.id];S.food.push(stamp(f));save();render()}catch(e){}},
  savetmeal:v=>{const d=view.nd||today(),F=S.food.filter(f=>f.d===d&&f.m===v);const n=(v==='Petit-déjeuner'?'Mon petit-déj':'Mon '+v.toLowerCase())+' du '+dShort(d);
   S.tmeals.push(stamp({id:'t'+uid(),n,items:F.map(({n,q,k,p,g,l,k100,p100,g100,l100})=>({n,q,k,p,g,l,k100,p100,g100,l100}))}));save();toast('Repas type enregistré · onglet « Repas types »')},
  usetmeal:v=>{const m=S.tmeals.find(x=>x.id===v),d=view.nd||today();if(!m)return;m.items.forEach(x=>S.food.push(stamp({...x,id:uid(),d,m:view.fm})));save();close();toast(esc(m.n)+' ajouté')},
- deltmeal:v=>{S.tmeals=S.tmeals.filter(x=>x.id!==v);tomb('tmeals',v);save();foodSheet()},
+ deltmeal:v=>{tomb('tmeals',v);S.tmeals=S.tmeals.filter(x=>x.id!==v);save();foodSheet()},
  newfood:()=>newFoodSheet({}),
  savenewfood:()=>{const n=$('#nfn').value.trim(),k=parseNum($('#nfk').value),e=$('#nferr'),opt=id=>{const v=$(id).value;return v===''?0:parseNum(v)};
   const p=opt('#nfp'),g=opt('#nfg'),l=opt('#nfl'),q=$('#nfq').value===''?100:parseNum($('#nfq').value);
   const bad=!n?'Donne un nom à l’aliment.':!inR(k,LIM.k100)?'Énergie pour 100 g : entre 0 et 900 kcal.':![p,g,l].every(x=>inR(x,LIM.mac100))?'Protéines, glucides, lipides : entre 0 et 100 g pour 100 g.':p+g+l>100.5?'Protéines + glucides + lipides dépassent 100 g pour 100 g.':!inR(q,LIM.q)?'Portion entre 1 et 3 000 g.':'';
   if(bad){e.hidden=false;e.textContent=bad;return}
   const f=stamp({n:n.slice(0,60),k100:k,p100:p,g100:g,l100:l,q,code:view.nf?.code||''});
-  S.myfoods=S.myfoods.filter(x=>x.n!==f.n&&(!f.code||x.code!==f.code));S.myfoods.unshift(f);save();view.qq=null;qtySheet(f);toast(f.code?'Produit ajouté à ta base : le prochain scan le reconnaîtra':'Aliment créé')},
+  S.myfoods.filter(x=>x.n===f.n||(f.code&&x.code===f.code)).forEach(x=>{const k=COLL.myfoods(x);if(k!==COLL.myfoods(f))tomb('myfoods',k,x.ver);else f.ver=Math.max(f.ver,(x.ver||0)+1)});S.myfoods=S.myfoods.filter(x=>x.n!==f.n&&(!f.code||x.code!==f.code));S.myfoods.unshift(f);save();view.qq=null;qtySheet(f);toast(f.code?'Produit ajouté à ta base : le prochain scan le reconnaîtra':'Aliment créé')},
  label:()=>{view.nf={...view.nf,n:$('#nfn').value,q:parseNum($('#nfq').value)||100};$('#labelfile').click()},
  scan:()=>{view.fm=view.fm||mealNow();scanSheet({})},
  shoot:()=>$('#scanfile').click(),
@@ -227,8 +229,8 @@ const A={
  /* onboarding */
  ob:v=>{view.ob=+v;render();scrollTo(0,0)},obt:v=>{view.obt=v;render()},
  obdone:()=>{const ch=view.obt||(S.logs.length?'keep':S.prof.sess<=3?'fb':S.prof.sess===4?'hb':'ppl');
-  if(ch!=='keep'&&TPL[ch]&&view.ob===3){S.progs.forEach(p=>tomb('progs',p.id));S.progs=progsFrom(ch);S.cur=S.progs[0].id;S.pn=TPL[ch].n;touch('cur');touch('pn')}
-  if(!S.bw.length&&view.obw)S.bw.push(stamp({d:today(),kg:S.prof.w}));
+  if(ch!=='keep'&&TPL[ch]&&view.ob===3){S.progs.forEach(p=>tomb('progs',p.id));S.progs=progsFrom(ch);S.progs.forEach(p=>stamp(p,'progs',p.id));S.cur=S.progs[0].id;S.pn=TPL[ch].n;touch('cur');touch('pn')}
+  if(view.obw){const ob=S.bw.find(b=>b.d===today());S.bw=S.bw.filter(b=>b.d!==today());S.bw.push(stamp({d:today(),kg:S.prof.w,ver:ob?.ver||0},'bw',today()))}
   S.prof.onb=1;S.prof.body=1;touch('prof');save();tab='seance';view={};render();scrollTo(0,0)},
  bodyok:()=>{S.prof.body=1;touch('prof');save();render()},
  close:()=>close()
@@ -252,7 +254,7 @@ document.addEventListener('change',ev=>{const t=ev.target,d=t.dataset,c=d.c;
   if(!lim||!inR(n,lim)){t.setAttribute('aria-invalid','true');if(e){e.hidden=false;e.textContent=(k==='a'?'Âge entre 14 et 99 ans.':k==='h'?'Taille entre 120 et 230 cm.':'Valeur hors limites.')}return}
   t.removeAttribute('aria-invalid');if(e)e.hidden=true;S.prof[k]=n;if(k==='a'||k==='h')S.prof.body=1;touch('prof');save();if(S.prof.onb)render();return}
  if(c==='pname2'){S.prof.name=t.value.trim().slice(0,30);touch('prof');save();return}
- if(c==='obw'){const n=parseNum(t.value);if(inR(n,LIM.bw)){S.prof.w=n;view.obw=1;S.bw=S.bw.filter(b=>b.d!==today());touch('prof');save();t.removeAttribute('aria-invalid')}else t.setAttribute('aria-invalid','true');return}
+ if(c==='obw'){const n=parseNum(t.value);if(inR(n,LIM.bw)){S.prof.w=n;view.obw=1;touch('prof');save();t.removeAttribute('aria-invalid')}else t.setAttribute('aria-invalid','true');return}
  if(c==='pn'){S.pn=t.value.trim().slice(0,40)||S.pn;touch('pn');save();return}
  if(c==='pname'){const p=prog();p.n=t.value.trim().slice(0,40)||p.n;stamp(p);save();render();return planSheet()}
  if(['ps','pa','pb','pt'].includes(c)){const p=prog(),x=p.items[+d.i];if(!x)return;
@@ -274,7 +276,7 @@ document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&$('#ov').innerHTM
  if(ev.key==='Enter'&&ev.target.dataset?.row){ev.preventDefault();const [id,k]=ev.target.dataset.row.split('|');A.tick(id+'|'+k)}});
 /* sheets follow the visible viewport: the keyboard never hides the bottom button */
 if(window.visualViewport){const vv=()=>document.documentElement.style.setProperty('--vvh',visualViewport.height+'px');visualViewport.addEventListener('resize',vv);vv()}
-document.addEventListener('visibilitychange',()=>{if(document.hidden)return;if(view.rest){lastLeft=-1;tickRest()}if(dbDoc)pushCloud();if(gOn()&&gLive())gSync();softRender()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)return;if(active()||view.rest)keepAwake();if(view.rest){lastLeft=-1;tickRest()}if(dbDoc)pushCloud();if(gOn()&&gLive())gSync();softRender()});
 
 /* ================= start ================= */
 boot().then(()=>{if(!BAD)evalBadges(true);render();if(BAD)return;restoreRest();loadRescue();cloud();initCaps();askPersist().then(()=>{if(tab==='prof')softRender()});if(migWarn)toast(migWarn)});

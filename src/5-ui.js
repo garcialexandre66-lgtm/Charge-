@@ -10,7 +10,9 @@ const TABS=[['seance','Séance'],['prog','Progrès'],['corps','Corps'],['nut','N
 function nav(){if(!S.prof.onb||BAD){$('#nav').hidden=true;return}$('#nav').hidden=false;const a=active();
  $('#nav').innerHTML=TABS.map(([k,l])=>`<button data-a="tab" data-v="${k}" ${tab===k?'aria-current="page"':''}>${ic(k)}${l}${k==='seance'&&a&&tab!=='seance'?'<span class="live"></span><span class="sr">, séance en cours</span>':''}</button>`).join('')}
 function go(t,v={}){tab=t;view=v;render();scrollTo(0,0)}
-function pill(){const a=active(),show=S.prof.onb&&!BAD&&a&&sLogs(a.id).length&&(tab!=='seance'||view.page);
+function pill(){const a=active(),R=view.rest;
+ if(R&&S.prof.onb&&!BAD&&!$('#ov').innerHTML){const left=Math.max(0,Math.ceil((R.end-Date.now())/1000));$('#pill').innerHTML=`<button class="spill" data-a="restopen"><i aria-hidden="true"></i>${left>0?'Repos <span id="pillt">'+mmss(left)+'</span>':'Repos terminé'}</button>`;return}
+ const show=S.prof.onb&&!BAD&&a&&sLogs(a.id).length&&(tab!=='seance'||view.page);
  $('#pill').innerHTML=show?`<button class="spill" data-a="tab" data-v="seance"><i aria-hidden="true"></i>Séance en cours, ${Math.round((Date.now()-a.start)/6e4)} min</button>`:''}
 /* empty sessions added after the fact and left without any set are removed */
 function cleanEmpty(){const rm=S.sess.filter(s=>s.retro&&s.state==='done'&&!sLogs(s.id).length&&view.sid!==s.id);if(rm.length){rm.forEach(s=>delSession(s.id));save()}}
@@ -84,7 +86,7 @@ function Home(){if(view.page==='progs')return Programs();
  <h1>${esc(a?sessName(a):prog().n)}</h1>
  ${a?`<div class="livebar"><span class="dotr" aria-hidden="true"></span><span>En cours depuis <span id="elapsed">${Math.round((Date.now()-a.start)/6e4)} min</span>, ${setsDone} séries sur ${setsTot}</span></div>`
   :`<span class="meta">${pl(P.length,'exercice')}, ${pl(setsTot,'série')}, environ ${estMin} min. <button class="link" style="min-height:0" data-a="page" data-v="progs">Changer de programme</button></span>`}</header>
- ${stale?`<section class="card warn col" style="gap:10px"><b>Séance du ${dLong(key(a.start))} pas encore validée</b><span class="sm">Dernière série à ${hm(lastAct(a))}. Valide-la pour la compter, ou continue-la.</span>
+ ${stale?`<section class="card warn col" style="gap:10px"><b>Séance du ${dLong(key(a.start))} pas encore validée</b><span class="sm">Dernière série à ${hm(lastAct(a))}. ${key(lastAct(a))!==today()?'Ta prochaine série ouvrira une nouvelle séance : celle-ci sera validée automatiquement.':'Valide-la pour la compter, ou continue-la.'}</span>
   <div class="row"><button class="btn2 grow" data-a="finish">Valider</button><button class="btn2 grow" data-a="keepgoing">Continuer</button></div></section>`:''}
  ${others.map(o=>`<section class="card warn col" style="gap:10px"><b>Une autre séance est ouverte</b><span class="sm">« ${esc(sessName(o))} », commencée le ${dShort(key(o.start))} à ${hm(o.start)}${o.dev&&o.dev!==DEV?' sur un autre appareil':''}, ${pl(sWork(o.id).length,'série')}.</span>
   <div class="row wrap">${sWork(o.id).length?`<button class="btn2 grow" data-a="closeother" data-v="${o.id}">La valider</button>`:`<button class="btn2 grow" data-a="dropother" data-v="${o.id}">La supprimer (vide)</button>`}<button class="btn2 grow" data-a="useother" data-v="${o.id}">Continuer celle-ci</button></div></section>`).join('')}
@@ -126,7 +128,8 @@ function Programs(){const c=view.tpl,a=active();
 /* ================= exercise details sheet (warm-up, drop set, plates, swap, movement) ================= */
 const CHIPS={reps:[5,6,8,10,12,15],s:[20,30,45,60,90,120],m:[20,40,60,100,200,400]};
 function setSheet(id){if(!id)return;const e=exo(id),p=planItem(id)||{id,s:3,rmin:lastOne(id)?.r||10,rmax:lastOne(id)?.r||10,none:1},tl=curLogs(id),tw=tl.filter(l=>!l.w),lw=lastWork(id),tg=target(id),u=uOf(id),lt=ltOf(id);
- let st=view.st&&view.st.id===id?view.st:{id,kg:tw.at(-1)?.kg??tg?.kg??lw?.at(-1)?.kg??(lt==='load'?20:0),r:tw.at(-1)?.r??tg?.r??p.rmin,f:'ok',dr:null,w:false};view.st=st;
+ const rd=planItem(id)?rowDefaults(id,1)[0]:null,rkg=rd&&rd.kg!==''?parseNum(rd.kg):NaN,rr=rd?parseNum(rd.r):NaN;
+ let st=view.st&&view.st.id===id?view.st:{id,kg:isFinite(rkg)?rkg:tw.at(-1)?.kg??tg?.kg??lw?.at(-1)?.kg??(lt==='load'?20:0),r:Number.isInteger(rr)?rr:tw.at(-1)?.r??tg?.r??p.rmin,f:'ok',dr:null,w:false};view.st=st;
  const pr=pairOf(id),chain=!st.w&&pr&&pr.a.id===id&&curWork(pr.b.id).length<pr.b.s,done=tw.length>=p.s,lastSet=!st.w&&tw.length+1>=p.s;
  const inc=incOf(id),s1=fmt(inc),s2=fmt(inc*4),K=LIM.kg[lt];
  const pl8=e.k==='barre'&&lt==='load'?plates(st.kg):null;
@@ -169,7 +172,7 @@ const PLATES=[25,20,15,10,5,2.5,1.25];
 function plates(kg){const bar=S.prof.bar||20;if(kg<bar)return {bar,under:1};let side=(kg-bar)/2+1e-6;const out=[];
  for(const p of PLATES)while(side>=p){out.push(p);side-=p}const real=bar+2*out.reduce((a,b)=>a+b,0);return {bar,out,real,exact:Math.abs(real-kg)<.01}}
 /* checks a load and a count; returns null and shows why when out of bounds */
-function checkSet(id,kgRaw,rRaw,errEl){const lt=ltOf(id),u=uOf(id),K=LIM.kg[lt],R=LIM.r[u],kg=kgRaw===''&&lt!=='load'?0:parseNum(kgRaw),r=parseNum(rRaw);
+function checkSet(id,kgRaw,rRaw,errEl,lt=ltOf(id),u=uOf(id)){K=LIM.kg[lt],R=LIM.r[u],kg=kgRaw===''&&lt!=='load'?0:parseNum(kgRaw),r=parseNum(rRaw);
  const err=m=>{if(errEl){errEl.hidden=false;errEl.textContent=m}else toast(m);return null};
  if(!inR(kg,K))return err(`${LTIN[lt]} : entre ${K[0]} et ${K[1]} kg.`);
  if(!(Number.isInteger(r)&&inR(r,R)))return err(`${UL[u][1]} : nombre entier entre ${R[0]} et ${R[1]}.`);
@@ -177,11 +180,10 @@ function checkSet(id,kgRaw,rRaw,errEl){const lt=ltOf(id),u=uOf(id),K=LIM.kg[lt],
 function readSet(id,kgSel,rVal){const i=$(kgSel),v=checkSet(id,i?.value??'',String(rVal),$('#seterr'));if(!v&&i)i.setAttribute('aria-invalid','true');return v}
 
 function logSet(id,kg,r,f,dr,w){primeAudio();keepAwake();const s=ensureSession();
- if(!s.plan.some(p=>p.id===id)){s.plan.push({id,s:3,rmin:r,rmax:r,extra:1,n:exo(id).n});s.plan=dedupe(s.plan);stamp(s)}
- const t=Math.max(Date.now(),(sLogs(s.id).at(-1)?.t||0)+1);
+ const t=Math.max(Date.now(),(sLogs(s.id).at(-1)?.t||0)+1);if(!s.plan.some(p=>p.id===id)){s.plan.push({...extraItem(id),rmin:r,rmax:Math.max(r,extraItem(id).rmax),n:exo(id).n});stamp(s)}
  const o=addLog({sid:s.id,e:id,kg,r,f:w?undefined:(f||'ok'),t,...(w?{w:1}:{}),...(dr?.length&&!w?{dr:dr.map(d=>({kg:d.kg,r:d.r}))}:{})});
  if(o.f===undefined)delete o.f;save();view.st=null;
- if(w){render();toast('Échauffement noté : '+setTxt(o),['undo','Annuler',o.id]);return}
+ if(w){render();if(curSheet==='set')setSheet(id);toast('Échauffement noté : '+setTxt(o),['undo','Annuler',o.id]);return}
  const rec=isRec(o),pr=pairOf(id);if(rec)fanfare();
  if(pr&&pr.a.id===id&&curWork(pr.b.id).length<pr.b.s){render();if(rec)return showRec(o,pr.b.id);toast('Superset : enchaîne avec '+esc(exo(pr.b.id).n),['undo','Annuler la série',o.id]);focusRow(pr.b.id);return}
  render();startRest(id,o.id);if(rec)showRec(o);
@@ -189,17 +191,22 @@ function logSet(id,kg,r,f,dr,w){primeAudio();keepAwake();const s=ensureSession()
  const nb=evalBadges(),nc=chalCheck();if(nb.length)setTimeout(()=>toast('Trophée débloqué : '+esc(nb[0].n)),400);else if(nc)setTimeout(()=>toast('Défi réussi : '+esc(nc.n)),400)}
 const goalHit=(id,o)=>{const g=goalInfo(id);return g&&g.done&&o.kg>=g.kg&&workOf(id).find(l=>l.kg>=g.kg&&l.t>=Date.parse(g.set+'T00:00'))?.id===o.id?g:null};
 /* after a set, the next line to fill gets the focus */
-function focusRow(id){requestAnimationFrame(()=>{const b=document.querySelector(`#app .srow.now .tick`)||document.querySelector(`#app [data-a="tick"][data-v^="${CSS.escape(id)}|"]`);if(b){b.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});b.focus({preventScroll:true})}})}
+function focusRow(id){requestAnimationFrame(()=>{const b=document.querySelector(`#app [data-a="tick"][data-v^="${CSS.escape(id)}|"]`)||document.querySelector(`#app .srow.now .tick`);if(b){b.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});b.focus({preventScroll:true})}})}
 
 /* ---------- rest: the end time is saved; only the numbers change each tick. While resting you can say how the set felt. ---------- */
 let timer=null;const RESTK='charge-rest';
 function persistRest(){try{view.rest?localStorage.setItem(RESTK,JSON.stringify(view.rest)):localStorage.removeItem(RESTK)}catch(e){}}
 function startRest(id,lid){const r=restOf(id);view.rest={end:Date.now()+r*1000,total:r,id,lid,sid:active()?.id,beeped:false};persistRest();buildRest()}
+/* an exercise added to a session takes its sets and rep range from the programme, else the last session, else its last sets */
+function extraItem(id){const fromP=S.progs.flatMap(p=>p.items).find(x=>x.id===id);if(fromP)return {id,s:fromP.s,rmin:fromP.rmin,rmax:fromP.rmax,...(fromP.rest?{rest:fromP.rest}:{}),extra:1};
+ const fromS=[...doneSess()].reverse().map(x=>x.plan.find(q=>q.id===id)).find(Boolean);if(fromS)return {id,s:fromS.s,rmin:fromS.rmin,rmax:fromS.rmax,extra:1};
+ const lw=lastWork(id);if(lw){const r=Math.max(...lw.map(l=>l.r));return {id,s:Math.min(5,lw.length),rmin:r,rmax:r,extra:1}}
+ const u=uOf(id);return u==='reps'?{id,s:3,rmin:10,rmax:12,extra:1}:u==='s'?{id,s:3,rmin:30,rmax:60,extra:1}:{id,s:3,rmin:20,rmax:40,extra:1}}
 function restoreRest(){let R=null;try{R=JSON.parse(localStorage.getItem(RESTK)||'null')}catch(e){}if(!R)return;const a=active();
- if(!a||R.sid!==a.id||Date.now()-R.end>10*6e4){view.rest=null;persistRest();return}view.rest=R;buildRest()}
+ if(!a||R.sid!==a.id||Date.now()-R.end>10*6e4){view.rest=null;persistRest();return}view.rest=R;keepAwake();buildRest()}
 function restSug(R){const tl=curWork(R.id),l=tl.at(-1);if(!l||ltOf(R.id)!=='load')return '';const easy=tl.length>=2&&tl.slice(-2).every(x=>x.f==='easy');
  return easy?`Tes deux dernières séries étaient faciles : essaie ${fmt(l.kg+incOf(R.id))} kg.`:l.f==='hard'?`Échec : garde ${fmt(l.kg)} kg, ou baisse de ${fmt(incOf(R.id))} kg pour finir propre.`:''}
-function buildRest(){const R=view.rest;if(!R||view.rec)return;const P=plan(),nx=afterRest(R.id),q=nx&&P.find(x=>x.id===nx),n=nx?curWork(nx).length:0,more=nx===R.id,l=S.logs.find(x=>x.id===R.lid);
+function buildRest(){const R=view.rest;if(!R||view.rec)return;keepAwake();const P=plan(),nx=afterRest(R.id),q=nx&&P.find(x=>x.id===nx),n=nx?curWork(nx).length:0,more=nx===R.id,l=S.logs.find(x=>x.id===R.lid);
  const nd=nx?rowDefaults(nx,1)[0]:null,nextTxt=!nx?'Toutes les séries prévues sont faites.':`Ensuite : ${more?'série '+(n+1)+' sur '+q.s:esc(exo(nx).n)}${nd&&nd.kg!==''?', '+esc(tgtTxt(nx,+nd.kg,nd.r)):''}`;
  openLayer(`<div class="full" role="dialog" aria-modal="true" aria-labelledby="rest-title"><h2 id="rest-title" tabindex="-1">Repos</h2><span class="sm mut">${esc(exo(R.id).n)}${l?', '+esc(setTxt(l)):''}</span>
  <div class="timer" id="rtime" aria-hidden="true"></div><div class="rring" aria-hidden="true"><i id="rbar"></i></div><span class="sm mut" id="rtot"></span>
@@ -209,11 +216,13 @@ function buildRest(){const R=view.rest;if(!R||view.rec)return;const P=plan(),nx=
  ${restSug(R)?`<div class="card sm" style="max-width:360px;text-align:left">${restSug(R)}</div>`:''}
  <span class="sm" style="max-width:360px">${nextTxt}</span>
  <button class="btn" style="max-width:360px" id="rbtn" data-a="skiprest" data-nx="${!nx?'fin':more?'same':'next'}">Passer le repos</button>
+ <button class="btn2" style="max-width:360px;width:100%" data-a="restmin">Voir le carnet (le repos continue)</button>
  ${l?`<button class="link mutl" data-a="undo" data-v="${R.lid}">${ic('undo',16)} Annuler cette série</button>`:''}
  <p class="xs mut" style="max-width:300px;margin:0">Le bip ne sonne que si l’appli est ouverte à l’écran.</p></div>`,'rest');
  clearInterval(timer);lastLeft=-1;timer=setInterval(tickRest,250);tickRest()}
 let lastLeft=-1;
-function tickRest(){const R=view.rest,t=$('#rtime');if(!R||!t){clearInterval(timer);return}
+function tickRest(){const R=view.rest,t=$('#rtime');if(!R){clearInterval(timer);return}
+ if(!t){if($('#ov').innerHTML)return;const left=Math.max(0,(R.end-Date.now())/1000),pt=$('#pillt');if(pt)pt.textContent=mmss(Math.ceil(left));if(left<=0&&!R.beeped){R.beeped=true;persistRest();beep();pill()}return}
  const left=Math.max(0,(R.end-Date.now())/1000),sec=Math.ceil(left),frac=R.total?left/R.total:0;
  $('#rbar').style.width=(frac*100).toFixed(1)+'%';
  if(sec!==lastLeft){lastLeft=sec;t.textContent=left>0?mmss(sec):'Go';$('#rtot').textContent='sur '+mmss(R.total);
