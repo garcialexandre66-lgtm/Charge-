@@ -1,0 +1,30 @@
+# Charge 5.0
+
+Sources dans `src/`, site prêt à déployer dans `site/` (`node build.js` recompile `site/index.html`).
+Déploiement Cloudflare Pages : envoyer le contenu de `site/` (ou le zip `charge-cloudflare-5.0.zip`).
+
+## Design : « carnet de fonte »
+- Papier quadrillé clair, encre bleu-noir, surligneur jaune sur ce qu’il faut soulever maintenant, rouge pour records et échecs, vert pour les séries faites. Mode sombre automatique.
+- Une seule police (Archivo) utilisée sur toute sa largeur : large et grasse pour les titres, étroite pour les chiffres.
+- La séance est un tableau : une ligne par série, charge et répétitions préremplies, une touche pour valider. Le ressenti se donne pendant le repos.
+- Accueil réduit à la séance ; niveau et XP déplacés dans Progrès et Profil.
+- Premier lancement : « Commencer une séance » tout de suite ; le profil peut attendre (Nutrition le demande).
+
+## Corrections (audit de la 4.3)
+- **Bloquant corrigé** : l’unité d’un exercice (`unit`) n’utilise plus le champ de date de modification (`u`). Migration v5 qui répare les données abîmées. Un écran qui plante affiche un message et un bouton d’export, jamais une page vide.
+- **Historique figé** : chaque série garde sa mesure (`lt`, `un`). Changer le type ou l’unité d’un exercice ne réécrit plus volumes, records ni XP.
+- **Doublons** : un exercice n’apparaît qu’une fois par séance.
+- **Progression** : la charge de travail est la plus lourde de la dernière fois ; montée, rampe et séries allégées n’empêchent plus de monter.
+- **Sauvegardes honnêtes** : un message ne dit « copie gardée » qu’après vérification. Effacement et import refusés si la copie échoue, sauf choix explicite « sans copie ».
+- **Données illisibles** : écran de récupération, rien n’est écrit tant que tu n’as pas choisi (télécharger le brut, restaurer une copie, importer, repartir de zéro).
+- **Synchro** : versions par enregistrement ; une suppression gagne sur toute version qu’elle a vue, sans expiration (plus de séries qui reviennent). Les séances ouvertes sur deux appareils ne sont plus fermées d’office : le conflit est affiché. Verrou d’écriture court et relecture après écriture pour le compte Claude. Fusion entre onglets enregistrée.
+- **Stockage** : `navigator.storage.persist()` demandé ; date du dernier export visible ; rappel d’export après 3 séances ; invitation à installer sur l’écran d’accueil (Safari efface sinon après 7 jours sans visite).
+- **Clavier iPhone** : chaque ligne a son bouton de validation ; les feuilles suivent la zone visible quand le clavier est ouvert.
+- **XP** : 50 par séance, +30 par exercice en record (3 au plus), +100 pour la séance qui atteint l’objectif de la semaine. Plus de part liée au tonnage.
+- **Récup** : plus de rouge ni d’échéance inventée ; seulement les muscles travaillés ces 3 derniers jours.
+- **Nutrition** : sources et limites de l’estimation affichées (Mifflin-St Jeor 1990, protéines 1,6–2,2 g/kg).
+- **Hors ligne** (`sw.js`) : la page est gardée sous `./` seulement (redirection Cloudflare), toutes les écritures du cache sont attendues.
+
+## Testé
+Chromium, 390 × 844, mode clair et sombre : parcours complet (premier lancement, séance, repos, bilan, victoire, tous les onglets), migration de données 4.3 abîmées, changement d’unité après des séries, données illisibles, fusion avec horloge décalée, suppression ancienne, deux séances ouvertes, pyramide.
+Non testé : Safari et iPhone réels, synchro avec un vrai compte Claude.

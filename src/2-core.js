@@ -1,9 +1,9 @@
 <script>
 "use strict";
 /* ================= data ================= */
-const APPV='4.3';
+const APPV='5.0';
 const $=s=>document.querySelector(s);
-/* indicative recovery window in hours per muscle (large ≈72 h, medium ≈48 h, small ≈36 h) */
+/* rough recovery window in hours per muscle: an app heuristic (large ≈72 h, medium ≈48 h, small ≈36 h), not a measurement */
 const MUS={quadriceps:72,ischios:72,fessiers:72,dorsaux:72,pectoraux:72,lombaires:72,épaules:48,trapèzes:48,biceps:48,triceps:48,adducteurs:48,mollets:36,abdos:36,obliques:36,'avant-bras':36};
 const KINDS={machine:'Machine',barre:'Barre',halt:'Haltères',poulie:'Poulie',pdc:'Poids du corps'};
 /* exercise library: id, name, muscles (first = main), kind, compound, cues */
@@ -108,26 +108,27 @@ const LIB=[
  ['roue','Roue abdominale',['abdos'],'pdc',0,['À genoux, roue sous les épaules','Avance en gardant le dos rond','Reviens en contractant les abdos']],
  ['woodchop','Rotation poulie (bûcheron)',['obliques','abdos'],'poulie',0,['Poulie haute, de côté','Tire en diagonale vers la hanche opposée','La rotation vient du buste, bras tendus']]
 ].map(([id,n,m,k,c,q])=>({id,n,m,k,c,q,seat:''}));
-/* how a set is measured. u: reps | s (seconds) | m (metres). lt: load (kg lifted) | bw (body weight + optional added load) | assist (assistance kg, less = harder) */
+/* how a set is measured. unit: reps | s (seconds) | m (metres). lt: load (kg lifted) | bw (body weight + added load) | assist (assistance kg, less = harder).
+   Each set keeps its own measure (l.lt, l.un) so changing an exercise later never rewrites the history. */
 const UNITS={gainage:'s',farmer:'m'};
 const UL={reps:['rép.','Répétitions'],s:['s','Secondes'],m:['m','Mètres']};
 const LTL={load:'Charge',bw:'Poids du corps + lest',assist:'Assistance'};
-const LTIN={load:'Charge (kg)',bw:'Lest ajouté (kg)',assist:'Assistance (kg)'};
+const LTIN={load:'Charge',bw:'Lest ajouté',assist:'Assistance'};
 const it=(id,s,a,b,rest)=>({id,s,rmin:a,rmax:b??a,...(rest?{rest}:{})});
 const TPL={
- fb:{n:'Full body',lvl:'Débutant',sess:3,info:'3 séances / semaine · 45 à 60 min',progs:[
+ fb:{n:'Full body',lvl:'Débutant',sess:3,info:'3 séances par semaine, 45 à 60 min',progs:[
   {n:'Full body A',items:[it('presse',3,8,12),it('couche',3,6,10),it('tirage',3,8,12),it('epaules',3,8,12),it('crunch',3,12,20)]},
   {n:'Full body B',items:[it('legcurl',3,10,15),it('chestpress',3,8,12),it('rowing',3,8,12),it('elev',3,12,20),it('legext',3,10,15)]}]},
- hb:{n:'Haut / Bas',lvl:'Intermédiaire',sess:4,info:'4 séances / semaine · 60 min',progs:[
+ hb:{n:'Haut / Bas',lvl:'Intermédiaire',sess:4,info:'4 séances par semaine, 60 min',progs:[
   {n:'Haut A',items:[it('couche',4,6,8,150),it('rowing',4,8,12),it('epaules',3,8,12),it('tirage',3,8,12),it('curl',3,10,15),it('triceps',3,10,15)]},
   {n:'Bas A',items:[it('squat',4,6,8,150),it('sdtr',3,8,12,120),it('legext',3,10,15),it('legcurl',3,10,15),it('mollets',4,12,20)]},
   {n:'Haut B',items:[it('incline',4,8,12),it('tractions',4,6,10,120),it('elev',3,12,20),it('rowbarre',3,8,12),it('curlh',3,10,15),it('triceps',3,10,15)]},
   {n:'Bas B',items:[it('presse',4,8,12,120),it('hipthrust',4,8,12),it('fentes',3,8,12),it('legcurl',3,10,15),it('crunch',3,12,20)]}]},
- ppl:{n:'Push / Pull / Legs',lvl:'Intermédiaire',sess:5,info:'3 à 6 séances / semaine · 60 min',progs:[
+ ppl:{n:'Push / Pull / Legs',lvl:'Intermédiaire',sess:5,info:'3 à 6 séances par semaine, 60 min',progs:[
   {n:'Push',items:[it('couche',4,6,8,150),it('incline',3,8,12),it('epaules',3,8,12),it('elev',3,12,20),it('triceps',3,10,15)]},
   {n:'Pull',items:[it('tirage',4,8,12),it('rowing',3,8,12),it('pullover',3,10,15),it('oiseau',3,12,20),it('curl',3,10,15)]},
   {n:'Legs',items:[it('presse',4,8,12,120),it('sdtr',3,8,12,120),it('legext',3,10,15),it('legcurl',3,10,15),it('mollets',4,12,20)]}]},
- f5:{n:'Force 5 × 5',lvl:'Avancé',sess:3,info:'3 séances / semaine · charges lourdes',progs:[
+ f5:{n:'Force 5 × 5',lvl:'Avancé',sess:3,info:'3 séances par semaine, charges lourdes',progs:[
   {n:'Force A',items:[it('squat',5,5,5,180),it('couche',5,5,5,180),it('rowbarre',5,5,5,150)]},
   {n:'Force B',items:[it('squat',5,5,5,180),it('epaules',5,5,5,150),it('souleve',1,5,5,180)]}]}
 };
@@ -146,17 +147,20 @@ const MEAS=[['bras','Bras'],['poitrine','Poitrine'],['taille','Taille'],['hanche
 const MOODS=[['ko','Épuisé'],['bof','Bof'],['bien','Bien'],['top','Au top']];
 /* how hard the set felt. max = no rep left but the last one went up; hard = the last rep failed */
 const FEEL={easy:'Facile',ok:'Juste',max:'À fond',hard:'Échec'};
-const FEELD={easy:'3+ en réserve',ok:'1 ou 2 en réserve',max:'0 en réserve, réussie',hard:'dernière ratée'};
-const ACT={sed:['Sédentaire','assis la plupart du temps',1.2],leger:['Peu actif','debout de temps en temps, < 7 000 pas',1.375],actif:['Actif','debout souvent, 7 000 à 12 000 pas',1.5],tres:['Très actif','métier physique, > 12 000 pas',1.65]};
+const FEELD={easy:'3+ en réserve',ok:'1 ou 2 en réserve',max:'0 en réserve',hard:'dernière ratée'};
+/* activity multipliers commonly used with Mifflin-St Jeor; approximations, not measurements */
+const ACT={sed:['Sédentaire','Assis la plupart du temps',1.2],leger:['Peu actif','Debout de temps en temps, moins de 7 000 pas',1.375],actif:['Actif','Souvent debout, 7 000 à 12 000 pas',1.5],tres:['Très actif','Métier physique, plus de 12 000 pas',1.65]};
 /* numeric bounds actually enforced in code (not only in HTML attributes) */
 const LIM={kg:{load:[0,500],bw:[0,200],assist:[0,150]},r:{reps:[1,100],s:[1,3600],m:[1,10000]},bw:[25,350],meas:[10,250],a:[14,99],h:[120,230],q:[1,3000],k100:[0,900],mac100:[0,100],kman:[1000,6000],goal:[1,500]};
 
-function progsFrom(k){return TPL[k].progs.map((p,i)=>({id:k+i,n:p.n,items:p.items.map(x=>({...x})),u:Date.now()}))}
+function progsFrom(k){return TPL[k].progs.map((p,i)=>({id:k+i,n:p.n,items:p.items.map(x=>({...x})),u:Date.now(),ver:1}))}
 const libEx=()=>LIB.map(({q,...e})=>structuredClone(e));
-const SEED=()=>({v:4,pn:'Full body',ex:libEx(),progs:progsFrom('fb'),cur:'fb0',logs:[],sess:[],food:[],myfoods:[],fav:[],tmeals:[],water:{},bw:[],meas:[],
+const SEED=()=>({v:5,pn:'Full body',ex:libEx(),progs:progsFrom('fb'),cur:'fb0',logs:[],sess:[],food:[],myfoods:[],fav:[],tmeals:[],water:{},bw:[],meas:[],
  badges:{},goalsEx:{},wkGoal:{},chal:null,del:{},mt:{},
- prof:{name:'',sex:'h',w:75,h:178,a:28,goal:'masse',sess:3,act:'leger',kman:0,rest:90,step:2.5,bar:20,sound:1,water:2.5,kadj:0,kadjAt:'',onb:0}});
+ prof:{name:'',sex:'h',w:75,h:178,a:28,goal:'masse',sess:3,act:'leger',kman:0,rest:90,step:2.5,bar:20,sound:1,water:2.5,kadj:0,kadjAt:'',onb:0,body:0,lastExp:''}});
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+/* this device (never synced): used for the write lock and to know which open session belongs here */
+let DEV='';try{DEV=localStorage.getItem('charge-dev')||'';if(!DEV){DEV='d'+uid();localStorage.setItem('charge-dev',DEV)}}catch(e){DEV='d'+uid()}
 
 /* ================= small helpers ================= */
 const key=d=>{d=new Date(d);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
@@ -176,33 +180,40 @@ const dShort=d=>new Date(d+'T12:00').toLocaleDateString('fr-FR',{day:'numeric',m
 const dLong=d=>new Date(d+'T12:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
 const hm=t=>new Date(t).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
 const mondayOf=k=>{const d=new Date(k+'T12:00');d.setDate(d.getDate()-((d.getDay()+6)%7));return key(d)};
+const daysAgo=k=>Math.round((Date.parse(today())-Date.parse(k))/864e5);
+const agoTxt=k=>{const n=daysAgo(k);return n<=0?'aujourd’hui':n===1?'hier':'il y a '+n+' jours'};
 const MONTHS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
 const pctTxt=p=>(p>0?'+':'')+p+' %';
 const volTxt=v=>v>=1e4?fmt(v/1000)+' t':nf(v)+' kg';
 
 /* ================= state ================= */
-let S=SEED(),tab='seance',view={},REV=0;
+let S=SEED(),tab='seance',view={},REV=0,BAD=null;
 /* derived data is recomputed only when the data changed (REV is bumped by every save) */
 const memo=f=>{let r=-1,v;return ()=>{if(r!==REV){v=f();r=REV}return v}};
 
-/* ---------- exercises ---------- */
+/* ---------- exercises and how a set is measured ---------- */
 const libOf=id=>LIB.find(l=>l.id===id);
 const exo=id=>S.ex.find(e=>e.id===id)||{id,n:nameSnap(id)||'Exercice supprimé',m:['abdos'],k:'machine',c:0,seat:''};
-const ltOf=id=>{const e=exo(id);return e.lt||(e.k==='pdc'?'bw':'load')};
-const uOf=id=>{const e=exo(id);return e.u||UNITS[id]||'reps'};
+const ltE=e=>e.lt||(e.k==='pdc'?'bw':'load');
+const unE=e=>e.unit||UNITS[e.id]||'reps';
+const ltOf=id=>ltE(exo(id));
+const uOf=id=>unE(exo(id));
+const ltL=l=>l.lt||ltOf(l.e);
+const unL=l=>l.un||uOf(l.e);
+/* the history of an exercise that is comparable with how it is measured today */
+const sameM=(l,id)=>ltL(l)===ltOf(id)&&unL(l)===uOf(id);
 const incOf=id=>exo(id).inc||S.prof.step||2.5;
 const rnd=(v,id)=>{const st=id?incOf(id):(S.prof.step||2.5);return Math.round(v/st)*st};
-/* 1RM (Epley) only makes sense for a weight lifted for 1 to 12 repetitions */
+/* 1RM (Epley) only for a weight lifted 1 to 12 times; always shown as an estimate */
 const orm=(kg,r)=>r<=1?kg:kg*(1+r/30);
-const ormOk=l=>!l.w&&uOf(l.e)==='reps'&&ltOf(l.e)==='load'&&l.kg>0&&l.r>=1&&l.r<=12;
-/* one set as text, according to how the exercise is measured */
-function setTxt(l,short){const u=uOf(l.e),lt=ltOf(l.e),r=u==='reps'?l.r:l.r+' '+UL[u][0];
- let a=lt==='load'?fmt(l.kg)+' kg':lt==='bw'?(l.kg>0?'PDC + '+fmt(l.kg)+' kg':'PDC'):'assist. '+fmt(l.kg)+' kg';
- if(u==='reps')a+=' × '+r;else a=(lt==='load'&&l.kg>0?r+' · '+fmt(l.kg)+' kg':lt==='bw'&&l.kg>0?r+' · lest '+fmt(l.kg)+' kg':r);
- if(l.dr?.length)a+=' → '+l.dr.map(d=>fmt(d.kg)+' × '+d.r).join(' → ');
- return short?a:a}
-/* volume = kg × reps of working sets, drop-set steps included. Seconds, metres and assistance give no volume. */
-const setVol=l=>{if(l.w||uOf(l.e)!=='reps'||ltOf(l.e)==='assist')return 0;return l.kg*l.r+(l.dr||[]).reduce((a,d)=>a+d.kg*d.r,0)};
+const ormOk=l=>!l.w&&unL(l)==='reps'&&ltL(l)==='load'&&l.kg>0&&l.r>=1&&l.r<=12;
+function loadTxt(lt,kg){return lt==='load'?fmt(kg)+' kg':lt==='bw'?(kg>0?'PDC + '+fmt(kg)+' kg':'PDC'):'assist. '+fmt(kg)+' kg'}
+/* one set as text, with the measure the set was recorded with */
+function setTxt(l){const u=unL(l),lt=ltL(l),r=u==='reps'?String(l.r):l.r+' '+UL[u][0];let a;
+ if(u==='reps')a=loadTxt(lt,l.kg)+' × '+r;else a=r+(l.kg>0||lt==='assist'?' · '+loadTxt(lt,l.kg):'');
+ if(l.dr?.length)a+=' → '+l.dr.map(d=>fmt(d.kg)+' × '+d.r).join(' → ');return a}
+/* volume = kg × reps of working sets, drop-set steps included; seconds, metres and assistance give none */
+const setVol=l=>{if(l.w||unL(l)!=='reps'||ltL(l)==='assist')return 0;return l.kg*l.r+(l.dr||[]).reduce((a,d)=>a+d.kg*d.r,0)};
 const vol=L=>L.reduce((s,l)=>s+setVol(l),0);
 
 /* ---------- logs & sessions (indexed once per data revision) ---------- */
@@ -210,15 +221,21 @@ const IDX=memo(()=>{const L=S.logs.slice().sort((a,b)=>a.t-b.t),byE=new Map(),by
  for(const l of L){if(!byE.has(l.e))byE.set(l.e,[]);byE.get(l.e).push(l);if(!byS.has(l.sid))byS.set(l.sid,[]);byS.get(l.sid).push(l)}
  return {L,byE,byS}});
 const logsOf=id=>IDX().byE.get(id)||[];
-const workOf=id=>logsOf(id).filter(l=>!l.w);
+const allWorkOf=id=>logsOf(id).filter(l=>!l.w);
+const workOf=id=>allWorkOf(id).filter(l=>sameM(l,id));
 const sLogs=sid=>IDX().byS.get(sid)||[];
 const sWork=sid=>sLogs(sid).filter(l=>!l.w);
 const sessById=id=>S.sess.find(s=>s.id===id);
-const active=()=>S.sess.find(s=>s.state==='active')||null;
-/* a finished session counts only if it holds at least one working set (an empty or warm-up-only session gives nothing) */
+const lastAct=s=>Math.max(s.start,sLogs(s.id).at(-1)?.t||0);
+/* several sessions can be open (two devices): this device works on the one it started, else the most recent */
+let PREF='';try{PREF=localStorage.getItem('charge-cur')||''}catch(e){}
+const setPref=id=>{PREF=id||'';try{id?localStorage.setItem('charge-cur',id):localStorage.removeItem('charge-cur')}catch(e){}};
+const ACTS=memo(()=>S.sess.filter(s=>s.state==='active').sort((a,b)=>lastAct(b)-lastAct(a)));
+const active=()=>{const L=ACTS();return L.find(s=>s.id===PREF)||L[0]||null};
+const otherActives=()=>{const a=active();return ACTS().filter(s=>s!==a)};
+/* a finished session counts only if it holds at least one working set */
 const doneSess=memo(()=>S.sess.filter(s=>s.state==='done'&&sWork(s.id).length).sort((a,b)=>a.start-b.start));
 const sessOfDay=d=>S.sess.filter(s=>key(s.start)===d&&(s.state==='active'||sLogs(s.id).length)).sort((a,b)=>a.start-b.start);
-const lastAct=s=>Math.max(s.start,sLogs(s.id).at(-1)?.t||0);
 const isStale=s=>s&&s.state==='active'&&Date.now()-lastAct(s)>6*36e5;
 const sessMins=s=>{const L=sLogs(s.id);if(!L.length)return 0;const end=s.end||L.at(-1).t;return Math.max(1,Math.round((end-Math.min(s.start,L[0].t))/6e4))};
 const nameSnap=id=>{for(const s of S.sess){const x=s.plan?.find(p=>p.id===id);if(x?.n)return x.n}return null};
@@ -227,31 +244,34 @@ const sessName=s=>s.pn||'Séance';
 /* ---------- programme & plan of the session ---------- */
 const prog=()=>S.progs.find(p=>p.id===S.cur)||S.progs[0]||{id:'',n:'Séance',items:[]};
 const pname=id=>S.progs.find(p=>p.id===id)?.n;
-const previewPlan=()=>prog().items.map(x=>({...x,n:exo(x.id).n}));
+const previewPlan=()=>dedupe(prog().items.map(x=>({...x,n:exo(x.id).n})));
+/* one exercise appears once in a session: a second occurrence would share the same sets */
+const dedupe=P=>{const seen=new Set();return P.filter(x=>!seen.has(x.id)&&seen.add(x.id))};
 /* the active session keeps its own copy of the plan: editing the programme never changes a session in progress */
 const plan=()=>{const a=active();return a?a.plan:previewPlan()};
 const planItem=id=>plan().find(x=>x.id===id);
 const restOf=id=>planItem(id)?.rest||S.prof.rest;
 const curLogs=id=>{const a=active();return a?sLogs(a.id).filter(l=>l.e===id):[]};
 const curWork=id=>curLogs(id).filter(l=>!l.w);
-/* working sets of the last other session that contains this exercise */
+/* comparable working sets of the last other session that contains this exercise */
 function lastWork(id){const a=active(),W=workOf(id).filter(l=>!a||l.sid!==a.id);if(!W.length)return null;const sid=W.at(-1).sid;return W.filter(l=>l.sid===sid)}
 const lastOne=id=>lastWork(id)?.at(-1)||null;
-const repTxt=(p,id)=>{const u=uOf(id||p.id),r=p.rmin===p.rmax?String(p.rmin):p.rmin+'–'+p.rmax;return u==='reps'?r:r+' '+UL[u][0]};
+const repTxt=(p,id)=>{const u=uOf(id||p.id),r=p.rmin===p.rmax?String(p.rmin):p.rmin+' à '+p.rmax;return u==='reps'?r:r+' '+UL[u][0]};
 
 /* double progression inside a rep range.
-   Look at the first S working sets of last time (S = planned sets). Go up only if ALL of them were done
-   at the same top load, reached the top of the range and none failed. Otherwise keep the load. */
+   Working load = heaviest load of last time. Go up only when at least S sets (S = planned) were done at that load,
+   all of them reaching the top of the range, none failed. Lighter sets (ramp-up, back-off) are ignored. */
 function target(id){const p=planItem(id),ls=lastWork(id);if(!ls)return null;
- const s=p?.s||ls.length,rmin=p?.rmin||ls[0].r,rmax=p?.rmax||rmin,u=uOf(id),lt=ltOf(id),inc=incOf(id);
- const first=ls.slice(0,s),mx=Math.max(...first.map(l=>l.kg)),failed=ls.some(l=>l.f==='hard');
- const all=first.length>=s&&first.every(l=>Math.abs(l.kg-mx)<1e-9&&l.r>=rmax&&l.f!=='hard')&&!failed;
- const bestAtMx=Math.max(...first.filter(l=>Math.abs(l.kg-mx)<1e-9).map(l=>l.r));
- if(u!=='reps')return {kg:mx,r:bestAtMx,up:false,why:'Fais au moins autant que la dernière fois.'};
- if(all){if(lt==='assist')return mx>0?{kg:Math.max(0,mx-inc),r:rmin,up:true,why:'Toutes tes séries ont atteint '+rmax+' : moins d’assistance.'}:{kg:0,r:Math.min(rmax+1,100),up:true,why:'Sans assistance : vise une répétition de plus.'};
-  if(lt==='bw'&&mx===0)return {kg:0,r:Math.min(rmax+1,100),up:true,why:'Toutes tes séries ont atteint '+rmax+' : une répétition de plus, ou ajoute un lest.'};
-  return {kg:mx+inc,r:rmin,up:true,why:'Toutes tes séries ont atteint '+rmax+' répétitions sans échec : +'+fmt(inc)+' kg.'}}
- return {kg:mx,r:Math.max(rmin,Math.min(rmax,bestAtMx+(failed?0:1))),up:false,why:failed?'Une série a échoué la dernière fois : même charge.':'Reste à '+fmt(mx)+' kg jusqu’à '+rmax+' répétitions sur chaque série.'}}
+ const s=p?.s||1,rmin=p?.rmin||ls[0].r,rmax=p?.rmax||rmin,u=uOf(id),lt=ltOf(id),inc=incOf(id);
+ const eff=l=>lt==='assist'?-l.kg:l.kg,top=Math.max(...ls.map(eff)),atTop=ls.filter(l=>Math.abs(eff(l)-top)<1e-9),mx=atTop[0].kg;
+ const bestAtTop=Math.max(...atTop.map(l=>l.r)),failed=atTop.some(l=>l.f==='hard');
+ const ok=atTop.length>=s&&atTop.slice(0,s).every(l=>l.r>=rmax)&&!failed;
+ const rule=`Pour monter : ${pl(s,'série')} à ${loadTxt(lt,mx)} avec ${rmax} ${u==='reps'?'répétitions':UL[u][0]}, sans échec.`;
+ if(u!=='reps')return {kg:mx,r:bestAtTop,up:false,why:'Fais au moins autant que la dernière fois.',rule:''};
+ if(ok){if(lt==='assist')return mx>0?{kg:Math.max(0,mx-inc),r:rmin,up:true,why:'Tu as réussi '+pl(s,'série')+' à '+rmax+' : moins d’assistance.',rule}:{kg:0,r:Math.min(rmax+1,100),up:true,why:'Sans assistance : vise une répétition de plus.',rule};
+  if(lt==='bw'&&mx===0)return {kg:0,r:Math.min(rmax+1,100),up:true,why:'Tu as réussi '+pl(s,'série')+' à '+rmax+' : une répétition de plus, ou ajoute un lest.',rule};
+  return {kg:mx+inc,r:rmin,up:true,why:'Tu as réussi '+pl(s,'série')+' à '+rmax+' répétitions sans échec : +'+fmt(inc)+' kg.',rule}}
+ return {kg:mx,r:Math.max(rmin,Math.min(rmax,bestAtTop+(failed?0:1))),up:false,why:failed?'Une série a échoué la dernière fois : même charge.':atTop.length<s?'La dernière fois, '+pl(atTop.length,'série')+' à cette charge sur '+s+' prévues.':'Même charge, une répétition de plus.',rule}}
 
 /* superset = an item flagged ss is chained with the next one (pairs only) */
 function pairOf(id){const P=plan(),i=P.findIndex(x=>x.id===id);if(i<0)return null;if(P[i].ss&&P[i+1])return {a:P[i],b:P[i+1]};if(i>0&&P[i-1].ss)return {a:P[i-1],b:P[i]};return null}
@@ -262,43 +282,47 @@ function afterRest(id){const rem=x=>x&&curWork(x.id).length<x.s,pr=pairOf(id);if
 function suggested(){const D=doneSess(),last=[...D].reverse().find(s=>S.progs.some(p=>p.id===s.p));if(!last||S.progs.length<2)return null;
  const i=S.progs.findIndex(p=>p.id===last.p);return S.progs[(i+1)%S.progs.length].id}
 
-/* ---------- records ----------
-   weight & reps exercises: a set is a record when it beats the heaviest load OR the best estimated 1RM (sets of 1–12 reps).
-   other exercises (body weight, assistance, seconds, metres): a set is a record when no earlier set was at least as good
-   on both load and count. Warm-ups and drop-set steps never count. The very first set of an exercise is not a record. */
+/* ---------- records (compared only between sets measured the same way) ----------
+   weight & reps: beats the heaviest load, or the best estimated 1RM (1–12 reps).
+   body weight, assistance, seconds, metres: a harder load than ever, or more reps / seconds / metres at the hardest load.
+   Warm-ups and drop-set steps never count; the very first set is not a record. */
 const RECS=memo(()=>{const out=new Set(),st={};
- for(const l of IDX().L){if(l.w)continue;const e=l.e,u=uOf(e),lt=ltOf(e),b=st[e]||(st[e]={n:0,kg:0,o:0,P:[]});
+ for(const l of IDX().L){if(l.w)continue;const u=unL(l),lt=ltL(l),k=l.e+'|'+lt+'|'+u,b=st[k]||(st[k]={n:0,kg:0,o:0,eff:-Infinity,r:0});
   if(u==='reps'&&lt==='load'){const o=ormOk(l)?orm(l.kg,l.r):0;if(b.n&&(l.kg>b.kg+.01||(o&&o>b.o+.01)))out.add(l.id);b.kg=Math.max(b.kg,l.kg);b.o=Math.max(b.o,o)}
-  else{const eff=lt==='assist'?-l.kg:l.kg;if(b.n&&!b.P.some(p=>p.eff>=eff&&p.r>=l.r))out.add(l.id);b.P.push({eff,r:l.r})}
+  else{const eff=lt==='assist'?-l.kg:l.kg;if(b.n&&(eff>b.eff+.001||(Math.abs(eff-b.eff)<=.001&&l.r>b.r)))out.add(l.id);if(eff>b.eff+.001){b.eff=eff;b.r=l.r}else if(Math.abs(eff-b.eff)<=.001)b.r=Math.max(b.r,l.r)}
   b.n++}
  return out});
 const isRec=l=>RECS().has(l.id);
 const best=id=>workOf(id).reduce((b,l)=>Math.max(b,l.kg),0);
 const best1=id=>workOf(id).filter(ormOk).reduce((b,l)=>Math.max(b,orm(l.kg,l.r)),0);
 const bestReps=id=>workOf(id).reduce((b,l)=>Math.max(b,l.r),0);
-/* "best set" for display, by exercise type */
 function bestSet(id,from=0){const W=workOf(id).filter(l=>l.t>=from);if(!W.length)return null;const u=uOf(id),lt=ltOf(id);
  if(u==='reps'&&lt==='load')return W.reduce((b,l)=>!b||(ormOk(l)?orm(l.kg,l.r):l.kg)>(ormOk(b)?orm(b.kg,b.r):b.kg)?l:b,null);
  const eff=l=>lt==='assist'?-l.kg:l.kg;return W.reduce((b,l)=>!b||eff(l)>eff(b)||(eff(l)===eff(b)&&l.r>b.r)?l:b,null)}
 
-/* ---------- body weight at a date (for strength ratios that must not change when you gain weight later) ---------- */
+/* ---------- body weight at a date ---------- */
 const wNow=()=>{const b=S.bw.slice().sort((a,c)=>a.d<c.d?-1:1).at(-1);return b?b.kg:S.prof.w};
 function wAt(t){const d=key(t),B=S.bw.filter(b=>b.d<=d).sort((a,c)=>a.d<c.d?-1:1);return B.length?B.at(-1).kg:(S.bw.slice().sort((a,c)=>a.d<c.d?-1:1)[0]?.kg||S.prof.w)}
 
-/* ---------- weeks, streak, XP (one rule everywhere: what the win screen announces is what the total counts) ---------- */
+/* ---------- weeks, streak, XP ----------
+   XP rewards showing up, not tonnage (a heavy leg press would otherwise outscore pull-ups or planks):
+   50 per finished session, +100 for the session that reaches the week's goal, +30 per exercise in record (3 max). */
 const wkGoal=m=>S.wkGoal?.[m]?.g??S.prof.sess;
 const WEEKS=memo(()=>{const W={};doneSess().forEach(s=>{const m=mondayOf(key(s.start));(W[m]=W[m]||[]).push(s)});return W});
 const weekN=m=>(WEEKS()[m]||[]).length;
 function streak(){const W=WEEKS();let m=mondayOf(today()),n=0;if(!W[m])m=addDays(m,-7);while(W[m]){n++;m=addDays(m,-7)}return n}
 function maxStreak(){const K=Object.keys(WEEKS()).sort();let b=0,run=0,prev=null;K.forEach(w=>{run=prev&&addDays(prev,7)===w?run+1:1;b=Math.max(b,run);prev=w});return b}
 const XP=memo(()=>{const by={},W=WEEKS();let tot=0,v=0;const prs=new Set();
- doneSess().forEach(s=>{const L=sWork(s.id),sv=vol(L),rec=new Set(L.filter(isRec).map(l=>l.e)),m=mondayOf(key(s.start)),idx=W[m].indexOf(s)+1;
-  const x={vol:Math.round(sv/100),sess:40,recs:rec.size*60,week:idx===wkGoal(m)?100:0};x.total=x.vol+x.sess+x.recs+x.week;by[s.id]=x;tot+=x.total;v+=sv;rec.forEach(e=>prs.add(s.id+e))});
- const lvl=Math.floor(Math.sqrt(tot/120))+1,cur=120*(lvl-1)**2,next=120*lvl**2;
+ doneSess().forEach(s=>{const L=sWork(s.id),rec=new Set(L.filter(isRec).map(l=>l.e)),m=mondayOf(key(s.start)),idx=W[m].indexOf(s)+1;
+  const x={sess:50,recs:Math.min(3,rec.size)*30,nrec:rec.size,week:idx===wkGoal(m)?100:0};x.total=x.sess+x.recs+x.week;by[s.id]=x;tot+=x.total;v+=vol(L);rec.forEach(e=>prs.add(s.id+e))});
+ const lvl=lvlOf(tot),cur=120*(lvl-1)**2,next=120*lvl**2;
  return {xp:tot,lvl,cur,next,frac:(tot-cur)/(next-cur),by,prs:prs.size,sessions:doneSess().length,weeksOk:Object.keys(W).filter(m=>W[m].length>=wkGoal(m)).length,vol:v}});
-const lvlOf=xp=>Math.floor(Math.sqrt(xp/120))+1;
+function lvlOf(xp){return Math.floor(Math.sqrt(xp/120))+1}
 
-/* ================= nutrition maths ================= */
+/* ================= nutrition maths =================
+   Resting energy: Mifflin-St Jeor equation (Mifflin et al., Am J Clin Nutr 1990), an estimate for groups, not a measure of you.
+   × an activity multiplier (common approximation) + 2,5 % per weekly session (app approximation).
+   Protein 2 g/kg (2,2 in a cut): research puts the useful range around 1,6 to 2,2 g/kg (Morton et al., Br J Sports Med 2018). */
 function goals(){const p=S.prof,w=wNow(),a=(ACT[p.act]||ACT.leger)[2],act=Math.round((a+0.025*Math.min(7,Math.max(0,p.sess)))*1000)/1000;
  const bmr=10*w+6.25*p.h-5*p.a+(p.sex==='f'?-161:5),off={seche:-400,maintien:0,masse:300}[p.goal]||0;
  const auto=Math.round((bmr*act+off+(p.kadj||0))/10)*10,k=p.kman>0?p.kman:auto;
@@ -306,7 +330,7 @@ function goals(){const p=S.prof,w=wNow(),a=(ACT[p.act]||ACT.leger)[2],act=Math.r
  return {k,auto,man:p.kman>0,p:pr,l:li,g:Math.max(0,Math.round((k-pr*4-li*9)/4)),bmr:Math.round(bmr),act,off}}
 const nutDay=d=>S.food.filter(f=>f.d===d).reduce((a,f)=>({k:a.k+f.k,p:a.p+f.p,g:a.g+f.g,l:a.l+f.l}),{k:0,p:0,g:0,l:0});
 const waterN=d=>S.water[d]?.n||0;
-/* weekly weight trend (kg/week), least squares over the last 28 days; needs 4 weigh-ins spread over ≥ 14 days */
+/* weekly weight trend (kg/week), least squares over the last 28 days; needs 4 weigh-ins over ≥ 14 days */
 function trend(){const B=S.bw.filter(b=>Date.parse(b.d)>=Date.now()-28*864e5).sort((a,b)=>a.d<b.d?-1:1);if(B.length<4)return null;
  const x=B.map(b=>Date.parse(b.d)/864e5),y=B.map(b=>b.kg);if(x.at(-1)-x[0]<14)return null;
  const mx=x.reduce((a,b)=>a+b)/x.length,my=y.reduce((a,b)=>a+b)/y.length;
@@ -320,34 +344,41 @@ function adjustTip(){if(S.prof.kman>0)return null;const r=trend();if(r==null)ret
  if(g==='maintien'){if(r>.2){d=-150;why='Ton poids monte'}else if(r<-.2){d=150;why='Ton poids descend'}}
  return d?{d,r,why,logged}:null}
 
-/* ================= mutations (every change is time-stamped so two devices can merge without losing or reviving anything) ================= */
-const stamp=o=>{o.u=Date.now();return o};
+/* ================= mutations =================
+   Every record carries a version (ver) and a time (u). A deletion remembers the version it deleted, forever:
+   a copy from a device with a wrong clock, or one that stayed offline for months, cannot bring it back. */
+const tombOf=(c,k)=>S.del?.[c+':'+k];
+function stamp(o,c,k){const d=c?tombOf(c,k):null,base=d&&typeof d==='object'?d.v||0:0;o.ver=Math.max(o.ver||0,base)+1;o.u=Date.now();return o}
 const touch=f=>{S.mt=S.mt||{};S.mt[f]=Date.now()};
-const tomb=(c,k)=>{S.del=S.del||{};S.del[c+':'+k]=Date.now()};
-function addLog(l){l.id=l.id||'l'+uid();stamp(l);S.logs.push(l);return l}
-function delLog(id){const l=S.logs.find(x=>x.id===id);S.logs=S.logs.filter(x=>x.id!==id);tomb('logs',id);return l}
-function startSession(){const p=prog(),s=stamp({id:'s'+uid(),start:Date.now(),end:null,state:'active',p:p.id,pn:p.n,plan:previewPlan()});S.sess.push(s);return s}
+const tomb=(c,k,ver)=>{S.del=S.del||{};S.del[c+':'+k]={t:Date.now(),v:ver||0}};
+function addLog(l){l.id=l.id||'l'+uid();if(!l.lt)l.lt=ltOf(l.e);if(!l.un)l.un=uOf(l.e);stamp(l,'logs',l.id);S.logs.push(l);return l}
+function delLog(id){const l=S.logs.find(x=>x.id===id);S.logs=S.logs.filter(x=>x.id!==id);tomb('logs',id,l?.ver);return l}
+function startSession(){const p=prog(),s=stamp({id:'s'+uid(),start:Date.now(),end:null,state:'active',p:p.id,pn:p.n,plan:previewPlan(),dev:DEV});S.sess.push(s);setPref(s.id);REV++;return s}
 const ensureSession=()=>active()||startSession();
-function delSession(id){sLogs(id).forEach(l=>delLog(l.id));S.sess=S.sess.filter(s=>s.id!==id);tomb('sess',id)}
+function delSession(id){const s=sessById(id);sLogs(id).forEach(l=>delLog(l.id));S.sess=S.sess.filter(x=>x.id!==id);tomb('sess',id,s?.ver);if(PREF===id)setPref('')}
 function closeSession(s,{note,mood}={}){const L=sLogs(s.id),lastT=L.at(-1)?.t||s.start;
- s.state='done';s.end=Date.now()-lastT>2*36e5?lastT+5*6e4:Math.max(Date.now(),lastT);if(note!=null)s.note=note;if(mood)s.mood=mood;stamp(s);
+ s.state='done';s.end=Date.now()-lastT>2*36e5?lastT+5*6e4:Math.max(Date.now(),lastT);if(note!=null)s.note=note;if(mood)s.mood=mood;stamp(s);if(PREF===s.id)setPref('');
  /* the weekly goal of that week is frozen: changing the goal later never rewrites a week already counted */
  const m=mondayOf(key(s.start));S.wkGoal=S.wkGoal||{};if(!S.wkGoal[m])S.wkGoal[m]={g:S.prof.sess,u:Date.now()};
  const nx=S.progs.findIndex(p=>p.id===s.p);if(nx>=0&&S.progs.length>1){S.cur=S.progs[(nx+1)%S.progs.length].id;touch('cur')}}
 
-/* ================= storage ================= */
-let localErr='',sync='local',dbDoc=null,pushT=0,pushTry=0,pushing=false,pushAgain=false,lastSaved=0;
-/* exact state of saving: local (ok / error) and account (cloud) */
-let rescuePending=false;
-function persistLocal(){try{localStorage.setItem('charge',JSON.stringify(S));localErr='';lastSaved=Date.now();
-  /* saving works again: the rescue copy is no longer needed (everything it held is in S) */
-  if(rescuePending){rescuePending=false;IDB.del('rescue','cur').catch(()=>{})}return true}
- catch(e){localErr=e&&(e.name==='QuotaExceededError'||e.code===22)?'stockage plein':'stockage refusé';rescuePending=true;IDB.put('rescue',{k:'cur',at:Date.now(),json:JSON.stringify(S)}).catch(()=>{});return false}}
+/* ================= storage =================
+   Honest states: a message says a copy exists only once the write has been confirmed. */
+let localErr='',sync='local',dbDoc=null,lockDoc=null,pushT=0,pushTry=0,pushing=false,pushAgain=false,lastSaved=0,persisted=null;
+let rescue={state:'none',at:0};/* none | pending | ok | fail */
+function persistLocal(){if(BAD)return false;
+ try{localStorage.setItem('charge',JSON.stringify(S));localErr='';lastSaved=Date.now();
+  if(rescue.state!=='none'){rescue={state:'none',at:0};IDB.del('rescue','cur').catch(()=>{})}return true}
+ catch(e){localErr=e&&(e.name==='QuotaExceededError'||e.code===22)?'stockage plein':'stockage refusé';
+  if(rescue.state!=='pending'){rescue={state:'pending',at:Date.now()};
+   IDB.put('rescue',{k:'cur',at:Date.now(),json:JSON.stringify(S)}).then(()=>{rescue={state:'ok',at:Date.now()};banner()}).catch(()=>{rescue={state:'fail',at:Date.now()};banner()})}
+  else IDB.put('rescue',{k:'cur',at:Date.now(),json:JSON.stringify(S)}).then(()=>{rescue={state:'ok',at:Date.now()};banner()}).catch(()=>{rescue={state:'fail',at:Date.now()};banner()});
+  return false}}
 function save(){REV++;const ok=persistLocal();banner();if(dbDoc){clearTimeout(pushT);pushT=setTimeout(pushCloud,800)}return ok}
-function banner(){const b=$('#savebar');if(!b)return;
- const msg=localErr?`Enregistrement impossible sur cet appareil (${localErr}). Une copie de secours est gardée${dbDoc&&sync==='cloud'?' et ton compte est à jour':''}. Exporte tes données pour ne rien perdre.`
-  :dbDoc&&sync==='erreur'?'Envoi vers ton compte échoué. Tout est gardé sur cet appareil ; nouvel essai automatique.':'';
- b.innerHTML=msg?`<div class="savebar" role="alert"><span>${msg}</span>${localErr?'<button data-a="export">Exporter</button><button class="sec" data-a="retrysave">Réessayer</button>':'<button class="sec" data-a="retrysave">Réessayer</button>'}</div>`:''}
+function banner(){const b=$('#savebar');if(!b)return;let msg='';
+ if(localErr){msg=`Cet appareil refuse l’enregistrement (${localErr}). `+({pending:'Copie de secours en cours d’écriture…',ok:`Copie de secours enregistrée à ${hm(rescue.at)}, elle sera reprise au prochain lancement.`,fail:'La copie de secours a aussi échoué : tes dernières saisies ne sont qu’en mémoire. Exporte maintenant.',none:''}[rescue.state]||'')+(dbDoc&&sync==='cloud'?' Ton compte Claude, lui, est à jour.':'')}
+ else if(dbDoc&&sync==='erreur')msg='Envoi vers ton compte Claude échoué. Tout est enregistré sur cet appareil ; nouvel essai automatique.';
+ b.innerHTML=msg?`<div class="savebar" role="alert"><span>${msg}</span>${localErr?'<button data-a="export">Exporter</button>':''}<button class="sec" data-a="retrysave">Réessayer</button></div>`:''}
 /* IndexedDB: progress photos, backups before risky operations, rescue copy when localStorage refuses */
 const IDB={db:null,
  open(){if(this.db)return Promise.resolve(this.db);return new Promise((ok,ko)=>{try{const r=indexedDB.open('charge-photos',2);
@@ -355,35 +386,37 @@ const IDB={db:null,
   r.onsuccess=()=>ok(this.db=r.result);r.onerror=()=>ko(r.error);r.onblocked=()=>ko(new Error('blocked'))}catch(e){ko(e)}})},
  async all(st){const db=await this.open();return new Promise((ok,ko)=>{const q=db.transaction(st).objectStore(st).getAll();q.onsuccess=()=>ok(q.result);q.onerror=()=>ko(q.error)})},
  async get(st,k){const db=await this.open();return new Promise((ok,ko)=>{const q=db.transaction(st).objectStore(st).get(k);q.onsuccess=()=>ok(q.result);q.onerror=()=>ko(q.error)})},
- async put(st,o){const db=await this.open();return new Promise((ok,ko)=>{const t=db.transaction(st,'readwrite');t.objectStore(st).put(o);t.oncomplete=()=>ok(true);t.onerror=()=>ko(t.error)})},
+ async put(st,o){const db=await this.open();return new Promise((ok,ko)=>{const t=db.transaction(st,'readwrite');t.objectStore(st).put(o);t.oncomplete=()=>ok(true);t.onerror=()=>ko(t.error);t.onabort=()=>ko(t.error||new Error('abort'))})},
  async del(st,k){const db=await this.open();return new Promise((ok,ko)=>{const t=db.transaction(st,'readwrite');t.objectStore(st).delete(k);t.oncomplete=ok;t.onerror=()=>ko(t.error)})}};
-/* keep the 5 latest backups (IndexedDB, plus the latest one in localStorage when there is room) */
-async function backup(why,raw){raw=raw??JSON.stringify(S);let ok=false;
- try{await IDB.put('bak',{at:Date.now(),why,json:raw});const B=(await IDB.all('bak')).sort((a,b)=>b.at-a.at);for(const x of B.slice(5))await IDB.del('bak',x.at);ok=true}catch(e){}
- try{localStorage.setItem('charge-bak',JSON.stringify([{at:Date.now(),why,json:raw}]));ok=true}catch(e){}
- return ok}
+/* keep the 5 latest backups. Returns where the copy was confirmed: 'idb', 'ls' (only the latest one fits there) or '' (none) */
+async function backup(why,raw){raw=raw??JSON.stringify(S);let where='';const at=Date.now();
+ try{await IDB.put('bak',{at,why,json:raw});const got=await IDB.get('bak',at);if(got&&got.json===raw)where='idb';const B=(await IDB.all('bak')).sort((a,b)=>b.at-a.at);for(const x of B.slice(5))await IDB.del('bak',x.at)}catch(e){}
+ if(!where){try{localStorage.setItem('charge-bak',JSON.stringify([{at,why,json:raw}]));if(JSON.parse(localStorage.getItem('charge-bak'))[0].json===raw)where='ls'}catch(e){}}
+ return where}
+async function listBackups(){let L=[];try{L=(await IDB.all('bak')).map(b=>({...b,src:'idb'}))}catch(e){}try{(JSON.parse(localStorage.getItem('charge-bak')||'[]')||[]).forEach(b=>{if(!L.some(x=>x.at===b.at))L.push({...b,src:'ls'})})}catch(e){}return L.sort((a,b)=>b.at-a.at)}
 
-/* ---------- migration v1/v2/v3 → v4 (sessions with an id, no information invented) ---------- */
+/* ---------- migration v1 → v5 (no information invented) ---------- */
 function migrate(o){if(!o||typeof o!=='object'||Array.isArray(o))throw new Error('format');o=structuredClone(o);const v=o.v||1;
  if(!Array.isArray(o.progs)){o.progs=[{id:'A',n:'Séance A',items:Array.isArray(o.plan)?o.plan:[]}];o.cur='A'}
  delete o.plan;
  const cl=(v,a,b,d)=>{v=Math.round(Number(v));return isFinite(v)?Math.min(b,Math.max(a,v)):d};
  const item=x=>{const r=cl(x.rmin??x.r,1,10000,10),y={id:String(x.id),s:cl(x.s,1,20,3),rmin:r,rmax:Math.max(r,cl(x.rmax??r,1,10000,r))};if(x.rest)y.rest=cl(x.rest,10,900,90);if(x.ss)y.ss=1;if(x.extra)y.extra=1;if(x.orig)y.orig=String(x.orig);if(x.n)y.n=String(x.n);return y};
- o.progs=o.progs.map(p=>({id:String(p.id),n:String(p.n||'Séance'),u:p.u||0,items:(Array.isArray(p.items)?p.items:[]).filter(x=>x&&x.id!=null).map(item)}));
+ o.progs=o.progs.map(p=>({id:String(p.id),n:String(p.n||'Séance'),u:p.u||0,ver:p.ver||0,items:dedupe((Array.isArray(p.items)?p.items:[]).filter(x=>x&&x.id!=null).map(item))}));
  const ex=Array.isArray(o.ex)?o.ex:[];
  LIB.forEach(l=>{const e=ex.find(x=>x.id===l.id),{q,...b}=l;if(e){e.n=b.n;e.m=b.m.slice();e.k=b.k;e.c=b.c;delete e.q}else ex.push(structuredClone(b))});
- ex.forEach(e=>{e.k=KINDS[e.k]?e.k:'machine';e.c=e.c?1:0;e.seat=e.seat||'';e.m=Array.isArray(e.m)&&e.m.length?e.m:['pectoraux']});o.ex=ex;
+ /* v4 stored the unit in e.u, the same field as the change time: a text value is a unit, a number is a time */
+ ex.forEach(e=>{e.k=KINDS[e.k]?e.k:'machine';e.c=e.c?1:0;e.seat=e.seat||'';e.m=Array.isArray(e.m)&&e.m.length?e.m:['pectoraux'];
+  if(typeof e.u==='string'){if(UL[e.u]&&!e.unit)e.unit=e.u;delete e.u}if(e.u!=null&&!(typeof e.u==='number'&&isFinite(e.u)))delete e.u;if(e.unit&&!UL[e.unit])delete e.unit;if(e.lt&&!LTL[e.lt])delete e.lt});o.ex=ex;
  const P=Object.assign({},SEED().prof,o.prof||{});
  if(v<3&&Array.isArray(o.logs)&&o.logs.length)P.onb=1;
  if(!ACT[P.act])P.act='leger';
  const P0=SEED().prof;Object.keys(P0).forEach(k=>{if(typeof P0[k]==='number'&&!(typeof P[k]==='number'&&isFinite(P[k])))P[k]=P0[k]});
- if(!['masse','maintien','seche'].includes(P.goal))P.goal='masse';o.prof=P;
+ if(!['masse','maintien','seche'].includes(P.goal))P.goal='masse';
+ if(v<5&&(Array.isArray(o.logs)&&o.logs.length||P.onb))P.body=1;o.prof=P;
  ['myfoods','fav','tmeals','bw','meas','logs','food'].forEach(k=>{if(!Array.isArray(o[k]))o[k]=[]});
  o.food=o.food.map(f=>f.id?f:{...f,id:uid()});
  o.tmeals=o.tmeals.map(t=>t.id?t:{...t,id:'t'+uid()});
- /* water: day → glasses  becomes  day → {n, u} */
- const W={};Object.entries(o.water&&typeof o.water==='object'?o.water:{}).forEach(([d,x])=>{const n=typeof x==='number'?x:x?.n;if(typeof n==='number'&&n>=0)W[d]={n,u:x?.u||0}});o.water=W;
- /* badges: id → date  becomes  id → {d, u} */
+ const W={};Object.entries(o.water&&typeof o.water==='object'?o.water:{}).forEach(([d,x])=>{const n=typeof x==='number'?x:x?.n;if(typeof n==='number'&&n>=0)W[d]={n,u:x?.u||0,ver:x?.ver||0}});o.water=W;
  const B={};Object.entries(o.badges&&typeof o.badges==='object'?o.badges:{}).forEach(([k,x])=>{if(typeof x==='string')B[k]={d:x,u:0};else if(x&&x.d)B[k]=x});o.badges=B;
  o.goalsEx=o.goalsEx&&typeof o.goalsEx==='object'?o.goalsEx:{};o.wkGoal=o.wkGoal&&typeof o.wkGoal==='object'?o.wkGoal:{};o.del=o.del&&typeof o.del==='object'?o.del:{};o.mt=o.mt&&typeof o.mt==='object'?o.mt:{};
  if(!Array.isArray(o.sess)){
@@ -393,36 +426,37 @@ function migrate(o){if(!o||typeof o!=='object'||Array.isArray(o))throw new Error
   o.sess=Object.entries(byD).map(([d,L])=>{const meta=old.find(x=>x.d===d)||{},cnt={};L.forEach(l=>{if(l.p)cnt[l.p]=(cnt[l.p]||0)+1});
    const p=meta.p||Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0]||'',pp=o.progs.find(x=>x.id===p);
    const order=[...new Set(L.map(l=>l.e))];
-   /* planned sets are known only for today's open session (its programme); for past days the plan is what was done */
    const isOpen=d===t0&&!meta.d;let pl=order.map(e=>{const ls=L.filter(l=>l.e===e);return {id:e,s:ls.length,rmin:ls[0].r,rmax:ls[0].r}});
    if(isOpen&&pp){const day=o.day&&o.day.d===d?o.day:{swap:{},extra:[]};pl=pp.items.map(x=>day.swap?.[x.id]?{...x,id:day.swap[x.id],orig:x.id}:{...x});(day.extra||[]).forEach(e=>{if(!pl.some(x=>x.id===e))pl.push({id:e,s:3,rmin:10,rmax:10,extra:1})});order.forEach(e=>{if(!pl.some(x=>x.id===e))pl.push({id:e,s:L.filter(l=>l.e===e).length,rmin:10,rmax:10,extra:1})})}
-   pl=pl.map(item);pl.forEach(x=>{const e=ex.find(y=>y.id===x.id);if(e)x.n=e.n});
+   pl=dedupe(pl.map(item));pl.forEach(x=>{const e=ex.find(y=>y.id===x.id);if(e)x.n=e.n});
    const s={id:'s'+d.replace(/-/g,''),start:L[0].t,end:isOpen?null:L.at(-1).t,state:isOpen?'active':'done',p,pn:pp?.n||null,plan:pl,legacy:1,u:L.at(-1).t};
    if(meta.note)s.note=meta.note;if(meta.mood)s.mood=meta.mood;return s});
   o.logs.forEach(l=>{l.sid='s'+key(l.t).replace(/-/g,'')});
-  /* weeks already lived keep the goal known at migration time */
   o.sess.filter(s=>s.state==='done').forEach(s=>{const m=mondayOf(key(s.start));if(!o.wkGoal[m])o.wkGoal[m]={g:P.sess,u:0}})}
- o.sess=o.sess.map(s=>({...s,plan:(Array.isArray(s.plan)?s.plan:[]).filter(x=>x&&x.id!=null).map(item)}));
- o.logs=o.logs.map(l=>{const y={...l};y.id=y.id||'l'+y.t.toString(36)+'-'+String(y.e).slice(0,12);if(y.f&&!FEEL[y.f])delete y.f;if(y.dr&&!y.dr.length)delete y.dr;y.u=y.u||y.t;return y});
+ o.sess=o.sess.map(s=>({...s,plan:dedupe((Array.isArray(s.plan)?s.plan:[]).filter(x=>x&&x.id!=null).map(item))}));
+ /* every set keeps the measure it was recorded with (filled from the exercise definition known today) */
+ const exM=new Map(ex.map(e=>[e.id,e]));
+ o.logs=o.logs.map(l=>{const y={...l};y.id=y.id||'l'+y.t.toString(36)+'-'+String(y.e).slice(0,12);if(y.f&&!FEEL[y.f])delete y.f;if(y.dr&&!y.dr.length)delete y.dr;y.u=y.u||y.t;
+  const e=exM.get(y.e)||{id:y.e,k:'machine'};if(!LTL[y.lt])y.lt=ltE(e);if(!UL[y.un])y.un=unE(e);return y});
  const ids=new Set();o.logs=o.logs.filter(l=>!ids.has(l.id)&&ids.add(l.id));
  delete o.sessions;delete o.day;delete o.chal;delete o.goalsExDone;
- o.pn=o.pn||'Mon programme';o.cur=o.progs.some(p=>p.id===o.cur)?o.cur:o.progs[0]?.id||'';o.v=4;return o}
+ o.pn=o.pn||'Mon programme';o.cur=o.progs.some(p=>p.id===o.cur)?o.cur:o.progs[0]?.id||'';o.v=5;return o}
 const fromJSON=j=>migrate(JSON.parse(j));
 
-/* ---------- full schema check of v4 data (used after every migration and before any import replaces anything) ---------- */
+/* ---------- full schema check of v5 data (after every migration, before any import replaces anything) ---------- */
 function validate(o){const E=[],D=/^\d{4}-\d\d-\d\d$/,F=v=>typeof v==='number'&&isFinite(v),str=v=>typeof v==='string'&&v.length>0,push=m=>{if(E.length<8)E.push(m)};
  const items=(L,w)=>{if(!Array.isArray(L))return push(w+' : liste d’exercices absente');L.forEach((x,i)=>{if(!x||!str(x.id))push(w+', exercice '+(i+1)+' : identifiant manquant');else if(!(Number.isInteger(x.s)&&x.s>=1&&x.s<=20))push(w+', '+x.id+' : nombre de séries invalide');else if(!(Number.isInteger(x.rmin)&&Number.isInteger(x.rmax)&&x.rmin>=1&&x.rmax>=x.rmin&&x.rmax<=10000))push(w+', '+x.id+' : répétitions invalides');else if(x.rest!=null&&!(F(x.rest)&&x.rest>=10&&x.rest<=900))push(w+', '+x.id+' : repos invalide')})};
  ['logs','sess','progs','ex','food','bw','meas','myfoods','tmeals','fav'].forEach(k=>{if(!Array.isArray(o[k]))push(k+' n’est pas une liste')});if(E.length)return E;
  const sids=new Set(o.sess.map(s=>s.id));
  o.sess.forEach((s,i)=>{if(!s||!str(s.id))return push('séance '+(i+1)+' : identifiant manquant');if(!F(s.start)||s.start<946684800000||s.start>Date.now()+2*864e5)push('séance '+(i+1)+' : début invalide');
   if(s.end!=null&&!(F(s.end)&&s.end>=s.start-6e4))push('séance '+(i+1)+' : fin invalide');if(!['active','done'].includes(s.state))push('séance '+(i+1)+' : état invalide');items(s.plan,'séance '+(i+1))});
- if(o.sess.filter(s=>s.state==='active').length>1)push('plusieurs séances en cours');
  o.logs.forEach((l,i)=>{if(!l||!str(l.id)||!str(l.e))return push('série '+(i+1)+' : identifiant ou exercice manquant');if(!sids.has(l.sid))push('série '+(i+1)+' : séance introuvable');
   if(!F(l.kg)||l.kg<0||l.kg>1000)push('série '+(i+1)+' : charge invalide');if(!F(l.r)||l.r<=0||l.r>10000)push('série '+(i+1)+' : nombre invalide');
   if(!F(l.t)||l.t<946684800000||l.t>Date.now()+2*864e5)push('série '+(i+1)+' : date invalide');if(l.f!=null&&!FEEL[l.f])push('série '+(i+1)+' : ressenti inconnu');
+  if(l.lt!=null&&!LTL[l.lt])push('série '+(i+1)+' : type de charge inconnu');if(l.un!=null&&!UL[l.un])push('série '+(i+1)+' : unité inconnue');
   if(l.dr!=null&&(!Array.isArray(l.dr)||l.dr.some(d=>!d||!F(d.kg)||d.kg<0||d.kg>1000||!F(d.r)||d.r<=0||d.r>1000)))push('série '+(i+1)+' : dégressif invalide')});
  o.progs.forEach((p,i)=>{if(!p||!str(p.id)||typeof p.n!=='string')push('programme '+(i+1)+' invalide');else items(p.items,'programme « '+p.n+' »')});
- o.ex.forEach((e,i)=>{if(!e||!str(e.id)||!str(e.n)||!Array.isArray(e.m)||!e.m.every(m=>typeof m==='string'))push('exercice '+(i+1)+' invalide');else{if(e.lt!=null&&!LTL[e.lt])push(e.n+' : type de charge inconnu');if(e.u!=null&&!UL[e.u])push(e.n+' : unité inconnue');if(e.inc!=null&&!(F(e.inc)&&e.inc>0&&e.inc<=50))push(e.n+' : incrément invalide')}});
+ o.ex.forEach((e,i)=>{if(!e||!str(e.id)||!str(e.n)||!Array.isArray(e.m)||!e.m.every(m=>typeof m==='string'))push('exercice '+(i+1)+' invalide');else{if(e.lt!=null&&!LTL[e.lt])push(e.n+' : type de charge inconnu');if(e.unit!=null&&!UL[e.unit])push(e.n+' : unité inconnue');if(e.inc!=null&&!(F(e.inc)&&e.inc>0&&e.inc<=50))push(e.n+' : incrément invalide')}});
  o.food.forEach((f,i)=>{if(!f||!str(f.id)||!D.test(f.d)||typeof f.n!=='string'||!(F(f.q)&&f.q>0&&f.q<=5000)||!['k','p','g','l'].every(k=>F(f[k])&&f[k]>=0))push('aliment '+(i+1)+' invalide')});
  o.bw.forEach((b,i)=>{if(!b||!D.test(b.d)||!F(b.kg)||b.kg<20||b.kg>400)push('pesée '+(i+1)+' invalide')});
  o.meas.forEach((m,i)=>{if(!m||!D.test(m.d)||MEAS.some(([k])=>m[k]!=null&&!(F(m[k])&&m[k]>=5&&m[k]<=300)))push('mesure '+(i+1)+' invalide')});
@@ -446,39 +480,53 @@ function prepareImport(raw){if(!raw||typeof raw!=='object'||Array.isArray(raw))t
  if(E.length)throw E.slice(0,6);
  let M;try{M=migrate(raw)}catch(e){throw ['migration impossible']}const V=validate(M);if(V.length)throw V;return M}
 
-/* ---------- merge two copies (this device + account, or two tabs): union by id, newest change wins, deletions are remembered ---------- */
+/* ---------- merge two copies (this device + account, or two tabs) ----------
+   Union by id. Higher version wins; then later time; then a fixed order, so every device reaches the same result.
+   A deletion wins over every version it has seen. Open sessions are never closed by a merge. */
 const COLL={logs:l=>l.id,sess:s=>s.id,food:f=>f.id,bw:b=>b.d,meas:m=>m.d,myfoods:f=>f.code?'c'+f.code:'n'+f.n,tmeals:t=>t.id,progs:p=>p.id,ex:e=>e.id};
 const MAPS=['water','goalsEx','badges'],META=['prof','pn','cur','fav'];
-function merge(A,B){const O=structuredClone(A),del={...(A.del||{})};Object.entries(B.del||{}).forEach(([k,t])=>{del[k]=Math.max(del[k]||0,t)});
- for(const [c,f] of Object.entries(COLL)){const M=new Map();for(const x of [...(B[c]||[]),...(A[c]||[])]){const k=f(x),o=M.get(k);if(!o||(x.u||0)>=(o.u||0))M.set(k,x)}
-  O[c]=[...M.values()].filter(x=>!((del[c+':'+f(x)]||0)>=(x.u||0)&&del[c+':'+f(x)]))}
- for(const m of MAPS){const R={...(B[m]||{})};Object.entries(A[m]||{}).forEach(([k,x])=>{if(!R[k]||(x?.u||0)>=(R[k]?.u||0))R[k]=x});
-  Object.keys(R).forEach(k=>{const t=del[m+':'+k];if(t&&t>=(R[k]?.u||0))delete R[k]});O[m]=R}
+const newer=(x,o)=>{const a=x?.ver||0,b=o?.ver||0;if(a!==b)return a>b;const c=x?.u||0,d=o?.u||0;if(c!==d)return c>d;return JSON.stringify(x)>JSON.stringify(o)};
+const gone=(d,x)=>!!d&&(typeof d==='number'?d>=(x?.u||0):(d.v||0)>=(x?.ver||0));
+const tombMax=(a,b)=>{if(!a)return b;if(!b)return a;if(typeof a==='object'&&typeof b==='object')return (b.v||0)>(a.v||0)?b:a;if(typeof a==='object')return a;if(typeof b==='object')return b;return Math.max(a,b)};
+function merge(A,B){const O=structuredClone(A),del={...(A.del||{})};Object.entries(B.del||{}).forEach(([k,d])=>{del[k]=tombMax(del[k],d)});
+ for(const [c,f] of Object.entries(COLL)){const M=new Map();for(const x of [...(B[c]||[]),...(A[c]||[])]){const k=f(x),o=M.get(k);if(!o||newer(x,o))M.set(k,x)}
+  O[c]=[...M.values()].filter(x=>!gone(del[c+':'+f(x)],x)).map(x=>structuredClone(x))}
+ for(const m of MAPS){const R={};for(const src of [B[m]||{},A[m]||{}])Object.entries(src).forEach(([k,x])=>{if(!R[k]||newer(x,R[k]))R[k]=x});
+  Object.keys(R).forEach(k=>{if(gone(del[m+':'+k],R[k]))delete R[k]});O[m]=structuredClone(R)}
  O.wkGoal={...(B.wkGoal||{}),...(A.wkGoal||{})};
- O.mt={...(A.mt||{})};for(const f of META){if((B.mt?.[f]||0)>(A.mt?.[f]||0)){O[f]=structuredClone(B[f]);O.mt[f]=B.mt[f]}}
- /* logs whose session no longer exists are dropped; only one session can stay open */
+ O.mt={...(A.mt||{})};for(const f of META){const a=A.mt?.[f]||0,b=B.mt?.[f]||0;if(b>a||(b===a&&b&&JSON.stringify(B[f])>JSON.stringify(A[f]))){O[f]=structuredClone(B[f]);O.mt[f]=b}}
  const ids=new Set(O.sess.map(s=>s.id));O.logs=O.logs.filter(l=>ids.has(l.sid)).sort((a,b)=>a.t-b.t);
- const act=O.sess.filter(s=>s.state==='active').sort((a,b)=>b.start-a.start);act.slice(1).forEach(s=>{const L=O.logs.filter(l=>l.sid===s.id);s.state='done';s.end=L.at(-1)?.t||s.start;s.u=Date.now()});
- const lim=Date.now()-200*864e5;Object.keys(del).forEach(k=>{if(del[k]<lim)delete del[k]});O.del=del;O.v=4;return O}
+ O.del=del;O.v=5;return O}
 const sameData=(A,B)=>JSON.stringify(A)===JSON.stringify(B);
+const missingFrom=(R,L)=>Object.entries(COLL).some(([c,f])=>{const K=new Set((R[c]||[]).map(f));return (L[c]||[]).some(x=>!K.has(f(x)))});
 
-function load(){let j=null;try{j=localStorage.getItem('charge')}catch(e){localErr='stockage refusé';return}
- if(!j)return;try{const o=JSON.parse(j);if((o.v||1)<4)backup('Avant mise à jour '+APPV,j);const M=migrate(o),E=validate(M);if(E.length){backup('Données incohérentes',j);console.warn(E)}S=M;if((o.v||1)<4)persistLocal()}
- catch(e){backup('Données illisibles',j);localErr='données locales illisibles, copie de secours gardée'}}
+/* ---------- start: read, migrate after a confirmed backup, or stop on unreadable data ---------- */
+let migWarn='';
+async function boot(){let j=null;try{j=localStorage.getItem('charge')}catch(e){localErr='stockage refusé';return}
+ if(!j)return;let o=null;try{o=JSON.parse(j)}catch(e){}
+ if(!o||typeof o!=='object'){const w=await backup('Données illisibles (copie brute)',j);BAD={raw:j,why:'Les données de cet appareil sont illisibles.',copy:w};return}
+ let M;try{M=migrate(o)}catch(e){const w=await backup('Migration impossible (copie brute)',j);BAD={raw:j,why:'Les données de cet appareil n’ont pas pu être converties.',copy:w};return}
+ const E=validate(M);if(E.length){await backup('Données incohérentes',j);console.warn(E)}
+ if((o.v||1)<5){const w=await backup('Avant mise à jour '+APPV,j);if(!w)migWarn='La mise à jour a été faite sans copie de l’ancienne version (stockage plein ?). Exporte tes données.'}
+ S=M;if((o.v||1)<5)persistLocal()}
 /* a rescue copy (made when localStorage refused a save) is merged back at start */
-async function loadRescue(){try{const r=await IDB.get('rescue','cur');if(!r)return;const R=fromJSON(r.json),M=merge(S,R);if(!sameData(M,S)){S=M;REV++;if(persistLocal())await IDB.del('rescue','cur');render()}else if(!localErr)await IDB.del('rescue','cur')}catch(e){}}
-/* another tab of the app saved: merge instead of overwriting */
-window.addEventListener('storage',e=>{if(e.key!=='charge'||!e.newValue)return;try{const R=fromJSON(e.newValue),M=merge(S,R);if(!sameData(M,S)){S=M;REV++;softRender()}}catch(err){}});
+async function loadRescue(){if(BAD)return;try{const r=await IDB.get('rescue','cur');if(!r)return;const R=fromJSON(r.json),M=merge(S,R);if(!sameData(M,S)){S=M;REV++;if(persistLocal())await IDB.del('rescue','cur');render()}else if(!localErr)await IDB.del('rescue','cur')}catch(e){}}
+/* another tab saved: merge, and write the merged result if it holds something the other tab did not have */
+window.addEventListener('storage',e=>{if(BAD||e.key!=='charge'||!e.newValue)return;try{const R=fromJSON(e.newValue),M=merge(S,R);if(!sameData(M,S)){S=M;REV++;softRender()}if(!sameData(S,R)&&missingFrom(R,S))persistLocal()}catch(err){}});
 
-/* ---------- account copy (Claude): read → merge → write, never overwrite silently ---------- */
-async function cloud(){if(!window.claude)return;try{const [db,user]=await Promise.all([claude.use('db'),claude.use('user')]);const id=user&&await user.id();if(!db||!id)return;
- dbDoc=db.doc('data/users/'+id+'/app');sync='chargement';await pushCloud();if(!S.prof.onb&&S.logs.length)S.prof.onb=1;softRender()}catch(e){sync='local';banner()}}
-async function pushCloud(){if(!dbDoc)return;if(pushing){pushAgain=true;return}pushing=true;sync='envoi';
- try{const snap=await dbDoc.get();
-  if(snap.exists){let R=null;const j=snap.data().json;try{R=fromJSON(j)}catch(e){await backup('Copie du compte illisible',j)}
-   /* what was typed while the copy was loading is in S: it is merged, not replaced */
-   if(R){const M=merge(S,R);if(!sameData(M,S)){S=M;REV++;persistLocal();softRender()}if(sameData(S,R)){sync='cloud';pushTry=0;return}}}
-  await dbDoc.set({json:JSON.stringify(S)});sync='cloud';pushTry=0}
+/* ---------- account copy (only inside Claude): short write lock → read → merge → write → check ---------- */
+async function cloud(){if(!window.claude||BAD)return;try{const [db,user]=await Promise.all([claude.use('db'),claude.use('user')]);const id=user&&await user.id();if(!db||!id)return;
+ dbDoc=db.doc('data/users/'+id+'/app');lockDoc=db.doc('data/users/'+id+'/lock');sync='chargement';await pushCloud();if(!S.prof.onb&&S.logs.length)S.prof.onb=1;softRender()}catch(e){sync='local';banner()}}
+async function pushCloud(){if(!dbDoc||BAD)return;if(pushing){pushAgain=true;return}pushing=true;sync='envoi';
+ try{if(lockDoc&&typeof lockDoc.acquire==='function'){const L=await lockDoc.acquire({holder:DEV,ttlMs:15000}).catch(()=>({acquired:true}));
+   if(!L.acquired){pushing=false;clearTimeout(pushT);pushT=setTimeout(pushCloud,1500+Math.random()*2000);return}}
+  for(let round=0;round<3;round++){const snap=await dbDoc.get();let R=null;
+   if(snap.exists){const j=snap.data().json;try{R=fromJSON(j)}catch(e){await backup('Copie du compte illisible',j)}}
+   if(R){const M=merge(S,R);if(!sameData(M,S)){S=M;REV++;persistLocal();softRender()}if(sameData(S,R)){sync='cloud';pushTry=0;return}}
+   await dbDoc.set({json:JSON.stringify(S)});
+   /* check that nothing written by another device in between was lost; otherwise merge again */
+   const chk=await dbDoc.get(),C=chk.exists?fromJSON(chk.data().json):null;if(C&&!missingFrom(C,S)){if(!sameData(merge(S,C),S)){S=merge(S,C);REV++;persistLocal();softRender();continue}sync='cloud';pushTry=0;return}}
+  sync='cloud';pushTry=0}
  catch(e){sync='erreur';pushTry++;clearTimeout(pushT);pushT=setTimeout(pushCloud,[3,10,30,60,120][Math.min(4,pushTry-1)]*1000)}
  finally{pushing=false;banner();if(pushAgain){pushAgain=false;clearTimeout(pushT);pushT=setTimeout(pushCloud,300)}}}
 let dl=null,sample=null,sampleImg=false;
@@ -486,6 +534,9 @@ async function initCaps(){if(!window.claude)return;
  try{dl=await claude.use('downloads')}catch(e){dl=null}
  try{sample=await claude.use('sample');if(sample){const lim=await sample.limits().catch(()=>null);sampleImg=!!lim?.images}}catch(e){sample=null}
  softRender()}
+/* ask the browser to keep this site's storage (Safari otherwise may clear it after 7 days without use, unless the app is on the home screen) */
+async function askPersist(){try{if(navigator.storage?.persisted){persisted=await navigator.storage.persisted();if(!persisted&&navigator.storage.persist)persisted=await navigator.storage.persist()}}catch(e){persisted=null}}
+const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
 
 /* ---------- progress photos stay on this device (IndexedDB), never in the synced data ---------- */
 const PH={urls:{},all:()=>IDB.all('p').then(L=>L.sort((a,b)=>a.d<b.d?-1:a.d>b.d?1:a.t-b.t)),put:o=>IDB.put('p',o),del:id=>IDB.del('p',id),
@@ -505,7 +556,7 @@ function beep(){try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e)
  const t=actx.currentTime+d;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.25,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.15);o.start(t);o.stop(t+.16)})}catch(e){}}
 let wake=null;function keepAwake(){if(wake||!navigator.wakeLock)return;navigator.wakeLock.request('screen').then(w=>{wake=w;w.addEventListener('release',()=>wake=null)}).catch(()=>{})}
 
-/* ================= icons ================= */
+/* ================= icons (stroke, follow text colour) ================= */
 const I={seance:'<path d="M3 10v4M7 7v10M17 7v10M21 10v4M7 12h10"/>',prog:'<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>',corps:'<circle cx="12" cy="4.5" r="2.5"/><path d="M5 9h14M12 9v6M12 15l-3 6M12 15l3 6"/>',
  nut:'<path d="M12 21c-4 0-7-3-7-8 0-3 2-5 4-5 1.2 0 2 .6 3 .6s1.8-.6 3-.6c2 0 4 2 4 5 0 5-3 8-7 8zM12 8c0-2 1-4 3-5"/>',prof:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
  check:'<path d="M5 12l5 5 9-10"/>',back:'<path d="M15 5l-7 7 7 7"/>',up:'<path d="M12 19V5M6 11l6-6 6 6"/>',down:'<path d="M12 5v14M6 13l6 6 6-6"/>',trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
@@ -513,6 +564,7 @@ const I={seance:'<path d="M3 10v4M7 7v10M17 7v10M21 10v4M7 12h10"/>',prog:'<path
  star:'<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/>',camera:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',edit:'<path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"/>',
  swap:'<path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/>',spark:'<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6"/>',water:'<path d="M12 3c3 4 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 3-7 6-11z"/>',
  cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',x:'<path d="M6 6l12 12M18 6L6 18"/>',copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
- undo:'<path d="M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'};
+ undo:'<path d="M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',more:'<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
+ shield:'<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/>'};
 const ic=(n,s=22)=>`<svg class="i" style="width:${s}px;height:${s}px" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`;
 </script>

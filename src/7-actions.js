@@ -24,8 +24,10 @@ async function saveFile(fn,data,type){if(dl){try{await dl.save({filename:fn,data
  const blob=data instanceof Blob?data:new Blob([data],{type}),u=URL.createObjectURL(blob),l=document.createElement('a');l.href=u;l.download=fn;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);return true}
 /* replacing all data (import, backup, reset): everything that disappears is marked deleted, so the account copy cannot bring it back */
 function replaceAll(N){const now=Date.now(),del={...(S.del||{})};
- for(const [c,f] of Object.entries(COLL)){const keep=new Set((N[c]||[]).map(f));(S[c]||[]).forEach(x=>{const k=f(x);if(!keep.has(k))del[c+':'+k]=now});(N[c]||[]).forEach(x=>x.u=now)}
- for(const m of MAPS){Object.keys(S[m]||{}).forEach(k=>{if(!(N[m]||{})[k])del[m+':'+k]=now});Object.values(N[m]||{}).forEach(x=>{if(x&&typeof x==='object')x.u=now})}
+ /* every record of the new copy gets a version above the one it replaces, and everything that disappears is deleted at its version */
+ const tv=(o,old)=>{o.ver=Math.max(o.ver||0,old?.ver||0,(del[o._k]&&typeof del[o._k]==='object'?del[o._k].v:0))+1;o.u=now};
+ for(const [c,f] of Object.entries(COLL)){const old=new Map((S[c]||[]).map(x=>[f(x),x])),keep=new Set((N[c]||[]).map(f));old.forEach((x,k)=>{if(!keep.has(k))del[c+':'+k]={t:now,v:x.ver||0}});(N[c]||[]).forEach(x=>{const k=f(x);x._k=c+':'+k;tv(x,old.get(k));delete x._k;delete del[c+':'+k]})}
+ for(const m of MAPS){const O=S[m]||{};Object.keys(O).forEach(k=>{if(!(N[m]||{})[k])del[m+':'+k]={t:now,v:O[k]?.ver||0}});Object.entries(N[m]||{}).forEach(([k,x])=>{if(x&&typeof x==='object'){x._k=m+':'+k;tv(x,O[k]);delete x._k;delete del[m+':'+k]}})}
  N.del=del;N.mt={};META.forEach(f=>N.mt[f]=now);S=N;REV++}
 
 /* ================= actions ================= */
@@ -43,6 +45,19 @@ const A={
  cancelsess:()=>{const a=active();if(!a)return close();if(sWork(a.id).length){close();return toast('Cette séance contient des séries : valide-la, ou supprime-la depuis Progrès.')}
   delSession(a.id);save();close();toast('Séance annulée')},
  set:v=>{if(!v)return;view.st=null;setSheet(v)},
+ /* one line of the logbook: read the two fields of the line and validate */
+ tick:v=>{const [id,k]=v.split('|'),fk=document.querySelector(`[data-row="${CSS.escape(id+'|'+k+'|kg')}"]`),fr=document.querySelector(`[data-row="${CSS.escape(id+'|'+k+'|r')}"]`);
+  const val=checkSet(id,fk?.value??'',fr?.value??'',null);if(!val){(fk&&!inR(ltOf(id)!=='load'&&fk.value===''?0:parseNum(fk.value),LIM.kg[ltOf(id)])?fk:fr)?.setAttribute('aria-invalid','true');return}
+  const T=view.rows?.[id];if(T)T.splice(+k,1);logSet(id,val.kg,val.r,'ok',null,false)},
+ tickmore:v=>{view.st=null;setSheet(v)},
+ rfeel:v=>{const R=view.rest,l=R&&S.logs.find(x=>x.id===R.lid);if(!l)return;l.f=v;stamp(l,'logs',l.id);save();buildRest()},
+ keepgoing:()=>{view.keep=active()?.id;render()},
+ closeother:v=>{const o=sessById(v);if(!o)return;closeSession(o);save();evalBadges(true);render();toast('Séance « '+esc(sessName(o))+' » validée')},
+ dropother:v=>{const o=sessById(v);if(!o||sWork(o.id).length)return;delSession(o.id);save();render();toast('Séance vide supprimée')},
+ useother:v=>{setPref(v);view.keep=null;render();scrollTo(0,0)},
+ rawdl:async()=>{if(BAD&&await saveFile('charge-donnees-brutes-'+today()+'.txt',BAD.raw,'text/plain'))toast('Fichier brut téléchargé')},
+ badreset:v=>{if(v==='ask'){view.badreset=1;return render()}if(v==='no'){view.badreset=0;return render()}
+  BAD=null;S=SEED();view={};tab='seance';persistLocal();REV++;render();toast('Appli remise à zéro')},
  kg:v=>{const st=stOf();if(!st)return;syncKg();st.kg=clampKg(st.id,st.kg+ +v*incOf(st.id));setSheet(st.id)},
  reps:v=>{const st=stOf();if(!st)return;syncKg();st.r=clampR(st.id,+v);setSheet(st.id)},
  feel:v=>{const st=stOf();syncKg();st.f=v;setSheet(st.id)},
@@ -68,7 +83,7 @@ const A={
    addLog({sid:s.id,e:id,kg:v.kg,r:v.r,t,...(E.w?{w:1}:{f:E.f})})}
   save();const gone=reconcileBadges();evalBadges(true);save();close();toast((l?'Série corrigée':'Série ajoutée')+' · stats recalculées'+(gone.length?' · trophée retiré : '+esc(gone[0].n):''))},
  undo:v=>{const l=delLog(v);if(!l)return;const gone=reconcileBadges();if(view.rest?.lid===v){view.rest=null;persistRest()}view.rec=null;save();closeOv();render();
-  toast('Série annulée'+(gone.length?' · trophée retiré':''));if(active()){view.st={id:l.e,kg:l.kg,r:l.r,f:l.f||'ok',dr:null,w:!!l.w};setSheet(l.e)}},
+  toast('Série annulée'+(gone.length?', trophée retiré':''));focusRow(l.e)},
  swap:v=>{const id=stOf().id,a=ensureSession(),i=a.plan.findIndex(x=>x.id===id);if(i<0)return;const it=a.plan[i];a.plan[i]={...it,id:v,orig:it.orig||it.id,n:exo(v).n};stamp(a);save();view.st=null;render();setSheet(v);toast('Remplacé pour cette séance seulement')},
  unswap:v=>{const a=active();if(!a)return;const i=a.plan.findIndex(x=>x.orig===v);if(i<0)return;const it={...a.plan[i],id:v,n:exo(v).n};delete it.orig;a.plan[i]=it;stamp(a);save();view.st=null;render();setSheet(v)},
  rmextra:v=>{const a=active();if(!a)return;a.plan=a.plan.filter(x=>x.id!==v||!x.extra);stamp(a);save();close()},
@@ -114,12 +129,13 @@ const A={
   const a=ensureSession();if(!a.plan.some(p=>p.id===v)){a.plan.push({id:v,s:3,rmin:10,rmax:12,extra:1,n:exo(v).n});stamp(a)}save();closeOv();render();setSheet(v)},
  createex:()=>{const n=$('#newex').value.trim();if(!n){$('#newerr').hidden=false;$('#newex').focus();return}
   const m=[$('#newm').value];if($('#newm2').value&&$('#newm2').value!==m[0])m.push($('#newm2').value);const id='x'+uid();
-  const e={id,n:n.slice(0,60),m,k:$('#newk').value,c:+$('#newc').value,seat:''};if($('#newlt').value!==(e.k==='pdc'?'bw':'load'))e.lt=$('#newlt').value;if($('#newu').value!=='reps')e.u=$('#newu').value;
+  const e={id,n:n.slice(0,60),m,k:$('#newk').value,c:+$('#newc').value,seat:''};if($('#newlt').value!==(e.k==='pdc'?'bw':'load'))e.lt=$('#newlt').value;if($('#newu').value!=='reps')e.unit=$('#newu').value;
   S.ex.push(stamp(e));A.addex(id)},
  tpl:v=>{view.tpl=v;render()},
  usetpl:v=>{S.progs.forEach(p=>tomb('progs',p.id));S.progs=progsFrom(v);S.cur=S.progs[0].id;S.pn=TPL[v].n;touch('cur');touch('pn');view.tpl='';save();render();toast('Programme « '+TPL[v].n+' » activé'+(active()?' · la séance en cours garde son plan':''))},
- exlt:v=>{const [id,k]=v.split('|'),e=S.ex.find(x=>x.id===id);if(!e)return;e.lt=k;stamp(e);view.exset=1;view.mode=null;save();render()},
- exu:v=>{const [id,k]=v.split('|'),e=S.ex.find(x=>x.id===id);if(!e)return;e.u=k;stamp(e);view.exset=1;view.mode=null;save();render()},
+ /* the sets already noted keep their own measure (l.lt, l.un): only new sets use the new one */
+ exlt:v=>{const [id,k]=v.split('|'),e=S.ex.find(x=>x.id===id);if(!e||!LTL[k])return;e.lt=k;stamp(e,'ex',id);view.exset=1;view.mode=null;save();render()},
+ exu:v=>{const [id,k]=v.split('|'),e=S.ex.find(x=>x.id===id);if(!e||!UL[k])return;e.unit=k;stamp(e,'ex',id);view.exset=1;view.mode=null;save();render()},
  /* progrès */
  ym:v=>{view.ym=v;view.coach=null;render()},
  more:()=>{view.more=1;render()},rg:v=>{view.rg=v;render()},mode:v=>{view.mode=v;render()},
@@ -188,16 +204,22 @@ const A={
  shoot:()=>$('#scanfile').click(),
  codego:()=>afterCode($('#code').value),
  /* profil */
- sex:v=>{S.prof.sex=v;touch('prof');save();render()},sound:v=>{S.prof.sound=+v;touch('prof');save();render()},
- export:async()=>{const data=JSON.stringify(S,null,1);if(await saveFile('charge-sauvegarde-'+today()+'.json',data,'application/json'))toast('Sauvegarde exportée (sans les photos)')},
+ sex:v=>{S.prof.sex=v;touch('prof');save();render()},
+ install:()=>{view.inst=!view.inst;render()},sound:v=>{S.prof.sound=+v;touch('prof');save();render()},
+ export:async()=>{if(BAD)return A.rawdl();const data=JSON.stringify(S,null,1);if(await saveFile('charge-sauvegarde-'+today()+'.json',data,'application/json')){S.prof.lastExp=today();touch('prof');save();render();toast('Sauvegarde exportée (sans les photos)')}},
  import:()=>$('#importfile').click(),
- noimp:()=>{view.imp=null;render()},
- doimp:async()=>{const N=view.imp;if(!N)return;if(!await backup('Avant import')){if(!view.impforce){view.impforce=1;return toast('Copie de secours impossible : exporte d’abord, ou touche Remplacer à nouveau')}}
-  replaceAll(structuredClone(N));S.prof.onb=1;touch('prof');view={};save();render();toast('Sauvegarde importée · copie de secours faite')},
- baks:async()=>{view.bakopen=!view.bakopen;if(view.bakopen){view.baks=null;render();try{view.baks=(await IDB.all('bak')).sort((a,b)=>b.at-a.at)}catch(e){view.baks=[]}}render()},
- restorebak:async v=>{try{const b=await IDB.get('bak',+v);view.imp=prepareImport(JSON.parse(b.json));render();scrollTo(0,document.body.scrollHeight);toast('Vérifie puis touche Remplacer')}catch(e){toast('Cette copie est illisible : '+esc((Array.isArray(e)?e:['format']).slice(0,2).join(' · ')))}},
- askreset:()=>{view.confirm=1;render()},nores:()=>{view.confirm=0;render()},
- reset:async()=>{await backup('Avant effacement');const N=SEED();replaceAll(N);view={};tab='seance';save();render();toast('Données effacées · copie de secours gardée')},
+ noimp:()=>{view.imp=null;view.impforce=0;view.impwarn='';render()},
+ doimp:async()=>{const N=view.imp;if(!N)return;
+  if(BAD){BAD=null;S=structuredClone(N);S.prof.onb=1;view={};tab='seance';REV++;const ok=persistLocal();render();return toast(ok?'Sauvegarde restaurée':'Restaurée en mémoire, mais cet appareil refuse l’enregistrement : exporte-la')}
+  let where='';if(!view.impforce){where=await backup('Avant import');if(!where){view.impforce=1;view.impwarn='La copie de secours des données actuelles a échoué (stockage plein ?). Exporte d’abord, ou remplace sans copie.';return render()}}
+  replaceAll(structuredClone(N));S.prof.onb=1;touch('prof');view={};save();render();toast(where?'Sauvegarde importée, copie des anciennes données gardée':'Sauvegarde importée, sans copie des anciennes données')},
+ baks:async()=>{view.bakopen=!view.bakopen;if(view.bakopen){view.baks=null;render();view.baks=await listBackups()}render()},
+ restorebak:async v=>{try{const b=(await listBackups()).find(x=>x.at===+v);if(!b)throw ['copie introuvable'];view.imp=prepareImport(JSON.parse(b.json));view.impforce=0;view.impwarn='';render();scrollTo(0,document.body.scrollHeight);toast('Vérifie puis touche Remplacer')}catch(e){toast('Cette copie est illisible : '+esc((Array.isArray(e)?e:['format']).slice(0,2).join(', ')))}},
+ askreset:()=>{view.confirm=1;render()},
+ skipob:()=>{S.prof.onb=1;touch('prof');save();tab='seance';view={};render();scrollTo(0,0)},nores:()=>{view.confirm=0;render()},
+ /* erasing needs a confirmed backup, or an explicit "erase without a copy" */
+ reset:async v=>{let where='';if(v!=='force'){where=await backup('Avant effacement');if(!where){view.confirm=2;return render()}}
+  const N=SEED();replaceAll(N);view={};tab='seance';save();render();toast(where?'Données effacées, copie de secours gardée':'Données effacées, sans copie')},
  replay:()=>{S.prof.onb=0;touch('prof');view={ob:0};save();render();scrollTo(0,0)},
  retrysave:()=>{persistLocal();banner();if(dbDoc)pushCloud();toast(localErr?'Toujours impossible : exporte tes données':'Enregistré')},
  /* onboarding */
@@ -205,7 +227,8 @@ const A={
  obdone:()=>{const ch=view.obt||(S.logs.length?'keep':S.prof.sess<=3?'fb':S.prof.sess===4?'hb':'ppl');
   if(ch!=='keep'&&TPL[ch]&&view.ob===3){S.progs.forEach(p=>tomb('progs',p.id));S.progs=progsFrom(ch);S.cur=S.progs[0].id;S.pn=TPL[ch].n;touch('cur');touch('pn')}
   if(!S.bw.length&&view.obw)S.bw.push(stamp({d:today(),kg:S.prof.w}));
-  S.prof.onb=1;touch('prof');save();tab='seance';view={};render();scrollTo(0,0)},
+  S.prof.onb=1;S.prof.body=1;touch('prof');save();tab='seance';view={};render();scrollTo(0,0)},
+ bodyok:()=>{S.prof.body=1;touch('prof');save();render()},
  close:()=>close()
 };
 function updQty(){const q=parseNum($('#qq')?.value);if(q>0&&view.qf){view.qq=q;const b=$('#qmac');if(b)b.innerHTML=macTiles(per(view.qf,q))}}
@@ -225,7 +248,7 @@ document.addEventListener('change',ev=>{const t=ev.target,d=t.dataset,c=d.c;
  if(c==='kg'){const n=parseNum(t.value),st=view.st;if(st&&inR(n,LIM.kg[ltOf(st.id)])){st.kg=n;t.removeAttribute('aria-invalid');if(exo(st.id).k==='barre')setSheet(st.id)}else t.setAttribute('aria-invalid','true');return}
  if(c==='prof'){const k=d.k,n=parseNum(t.value),lim={a:LIM.a,h:LIM.h,rest:[10,900],bar:[5,30],step:[.1,50],water:[.5,6]}[k],e=$('#proferr');
   if(!lim||!inR(n,lim)){t.setAttribute('aria-invalid','true');if(e){e.hidden=false;e.textContent=(k==='a'?'Âge entre 14 et 99 ans.':k==='h'?'Taille entre 120 et 230 cm.':'Valeur hors limites.')}return}
-  t.removeAttribute('aria-invalid');if(e)e.hidden=true;S.prof[k]=n;touch('prof');save();if(S.prof.onb)render();return}
+  t.removeAttribute('aria-invalid');if(e)e.hidden=true;S.prof[k]=n;if(k==='a'||k==='h')S.prof.body=1;touch('prof');save();if(S.prof.onb)render();return}
  if(c==='pname2'){S.prof.name=t.value.trim().slice(0,30);touch('prof');save();return}
  if(c==='obw'){const n=parseNum(t.value);if(inR(n,LIM.bw)){S.prof.w=n;view.obw=1;S.bw=S.bw.filter(b=>b.d!==today());touch('prof');save();t.removeAttribute('aria-invalid')}else t.setAttribute('aria-invalid','true');return}
  if(c==='pn'){S.pn=t.value.trim().slice(0,40)||S.pn;touch('pn');save();return}
@@ -238,16 +261,20 @@ document.addEventListener('change',ev=>{const t=ev.target,d=t.dataset,c=d.c;
  if(c==='snote'){const s=sessById(d.v);if(s){s.note=t.value.trim().slice(0,200);stamp(s);save()}return}
  if(c==='fm'){view.fm=t.value;return}});
 document.addEventListener('input',ev=>{const t=ev.target,i=t.dataset.i;
+ if(t.dataset.row){const [id,k,f]=t.dataset.row.split('|');view.rows=view.rows||{};const T=view.rows[id]=view.rows[id]||[];T[+k]=T[+k]||{};T[+k][f]=t.value.replace(',','.');t.removeAttribute('aria-invalid');return}
  if(i==='exq'){$('#exlist').innerHTML=exList(t.value);return}
  if(i==='lq'){view.lq=t.value;$('#lgrid').innerHTML=libCards();return}
  if(i==='fq'){view.fq=t.value;if(t.value&&view.ft!=='search'){view.ft='search';document.querySelectorAll('.sheet .seg button').forEach(b=>{const on=b.dataset.v==='search';b.classList.toggle('on',on);b.setAttribute('aria-selected',on)})}$('#flist').innerHTML=foodList();return}
  if(i==='qq')updQty()});
 document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&$('#ov').innerHTML){if(view.rest||view.rec)return;close()}
- if(ev.key==='Enter'&&ev.target.id==='bwin')A.savebw();if(ev.key==='Enter'&&ev.target.id==='code')A.codego();if(ev.key==='Enter'&&ev.target.id==='kgin'){ev.preventDefault();A.validate()}});
+ if(ev.key==='Enter'&&ev.target.id==='bwin')A.savebw();if(ev.key==='Enter'&&ev.target.id==='code')A.codego();if(ev.key==='Enter'&&ev.target.id==='kgin'){ev.preventDefault();A.validate()}
+ if(ev.key==='Enter'&&ev.target.dataset?.row){ev.preventDefault();const [id,k]=ev.target.dataset.row.split('|');A.tick(id+'|'+k)}});
+/* sheets follow the visible viewport: the keyboard never hides the bottom button */
+if(window.visualViewport){const vv=()=>document.documentElement.style.setProperty('--vvh',visualViewport.height+'px');visualViewport.addEventListener('resize',vv);vv()}
 document.addEventListener('visibilitychange',()=>{if(document.hidden)return;if(view.rest){lastLeft=-1;tickRest()}if(dbDoc)pushCloud();softRender()});
 
 /* ================= start ================= */
-load();evalBadges(true);render();restoreRest();loadRescue();cloud();initCaps();
+boot().then(()=>{if(!BAD)evalBadges(true);render();if(BAD)return;restoreRest();loadRescue();cloud();initCaps();askPersist().then(()=>{if(tab==='prof')softRender()});if(migWarn)toast(migWarn)});
 /* standalone site only (Cloudflare): offline cache; the Claude viewer has window.claude and no service workers */
 if(!window.claude&&'serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
