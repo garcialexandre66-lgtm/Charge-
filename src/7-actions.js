@@ -41,7 +41,22 @@ const A={
  day:v=>go('prog',{page:'day',day:v}),
  sess:v=>{const fday=view.page==='day'?view.day:null;closeOv();go('prog',{page:'sess',sid:v,fday})},
  /* séance */
- startsess:()=>{const s=ensureSession();save();render();const P=s.plan,n=P.find(p=>curWork(p.id).length<p.s)?.id||P[0]?.id;if(n)setSheet(n)},
+ startsess:()=>{primeAudio();keepAwake();ensureSession();save();view={};render();scrollTo(0,0)},
+ choosesess:()=>chooseSheet(),
+ wex:v=>{view.cur=v;view.draft=null;view.more=null;if($('#ov').innerHTML)closeOv();if(tab!=='seance'){tab='seance'}view.page=null;render();scrollTo(0,0)},
+ dkg:v=>{const id=curEx(),i=$('#dkg');if(!id||!i)return;const n=parseNum(i.value),k=clampKg(id,(isFinite(n)?n:0)+ +v*incOf(id));i.value=String(k).replace('.',',');i.removeAttribute('aria-invalid');draftOf(id).kg=k},
+ dr:v=>{const id=curEx(),i=$('#dr');if(!id||!i)return;const n=parseNum(i.value),r=clampR(id,(isFinite(n)?n:0)+ +v);i.value=r;i.removeAttribute('aria-invalid');draftOf(id).r=r},
+ wdone:()=>{const id=curEx();if(!id)return;const ik=$('#dkg'),ir=$('#dr'),v=checkSet(id,ik?.value??'',ir?.value??'',$('#seterr'));
+  if(!v){const lt=ltOf(id),kg=ik?.value===''&&lt!=='load'?0:parseNum(ik?.value);(inR(kg,LIM.kg[lt])?ir:ik)?.setAttribute('aria-invalid','true');return}
+  view.draft=null;view.more=null;logSet(id,v.kg,v.r,'ok',null,false)},
+ wmore:v=>{view.more=v;view.draft=null;render()},
+ swapsheet:v=>swapSheet(v),
+ swapto:v=>{const [id,to]=v.split('|'),a=ensureSession(),i=a.plan.findIndex(x=>x.id===id);if(i<0)return;const it=a.plan[i];a.plan[i]={...it,id:to,orig:it.orig||it.id,n:exo(to).n};stamp(a);save();closeOv();view.cur=to;view.draft=null;render();toast('Remplacé pour aujourd’hui')},
+ corpspage:v=>go('corps',{ct:v}),
+ tomoi:()=>go('prof'),
+ profme:()=>go('prof',{page:'me'}),
+ trainex:v=>{const a=ensureSession();if(!a.plan.some(p=>p.id===v)){a.plan.push({...extraItem(v),n:exo(v).n});stamp(a)}save();go('seance',{cur:v})},
+ allex:()=>{view.allex=1;render()},
  cancelsess:()=>{const a=active();if(!a)return close();if(sWork(a.id).length){close();return toast('Cette séance contient des séries : valide-la, ou supprime-la depuis Progrès.')}
   delSession(a.id);save();close();toast('Séance annulée')},
  set:v=>{if(!v)return;view.st=null;setSheet(v)},
@@ -85,8 +100,8 @@ const A={
  undo:v=>{const l=delLog(v);if(!l)return;const gone=reconcileBadges();if(view.rest?.lid===v){view.rest=null;persistRest()}view.rec=null;save();closeOv();render();
   toast('Série annulée'+(gone.length?', trophée retiré':''));focusRow(l.e)},
  swap:v=>{const id=stOf().id,a=ensureSession(),i=a.plan.findIndex(x=>x.id===id);if(i<0)return;const it=a.plan[i];a.plan[i]={...it,id:v,orig:it.orig||it.id,n:exo(v).n};stamp(a);save();view.st=null;render();setSheet(v);toast('Remplacé pour cette séance seulement')},
- unswap:v=>{const a=active();if(!a)return;const i=a.plan.findIndex(x=>x.orig===v);if(i<0)return;const it={...a.plan[i],id:v,n:exo(v).n};delete it.orig;a.plan[i]=it;stamp(a);save();view.st=null;render();setSheet(v)},
- rmextra:v=>{const a=active();if(!a)return;a.plan=a.plan.filter(x=>x.id!==v||!x.extra);stamp(a);save();close()},
+ unswap:v=>{const a=active();if(!a)return;const i=a.plan.findIndex(x=>x.orig===v);if(i<0)return;const it={...a.plan[i],id:v,n:exo(v).n};delete it.orig;a.plan[i]=it;stamp(a);save();view.st=null;closeOv();view.cur=v;view.draft=null;render()},
+ rmextra:v=>{const a=active();if(!a)return;a.plan=a.plan.filter(x=>x.id!==v||!x.extra);stamp(a);save();view.cur=null;view.draft=null;close()},
  exdetail:v=>{const from=tab==='prog'?(view.page==='lib'?'lib':view.page==='sess'?'sess':'prog'):tab,lm=view.lm,lq=view.lq,fsid=view.sid;if($('#ov').innerHTML){closeOv();view.st=null}go('prog',{page:'ex',ex:v,from,lm,lq,fsid})},
  demopause:()=>{view.demoPause=!view.demoPause;render()},
  togdemo:()=>{const st=stOf();if(!st)return;syncKg();view.showDemo=!view.showDemo;setSheet(st.id)},
@@ -97,7 +112,8 @@ const A={
  restmin:()=>{clearInterval(timer);$('#ov').innerHTML='';curSheet=null;setInert(false);render();timer=setInterval(tickRest,250)},
  restopen:()=>{if(view.rest)buildRest()},
  rest:v=>{const R=view.rest;if(!R)return;R.end+= +v*1000;R.total=Math.max(15,R.total+ +v);if(R.end<Date.now())R.end=Date.now();R.beeped=false;persistRest();lastLeft=-1;clearInterval(timer);timer=setInterval(tickRest,250);tickRest()},
- skiprest:()=>{clearInterval(timer);const id=view.rest?.id;view.rest=null;persistRest();closeOv();render();const nx=id&&afterRest(id);if(nx)return setSheet(nx);finish()},
+ skiprest:()=>{clearInterval(timer);const id=view.rest?.id;view.rest=null;persistRest();closeOv();const nx=id&&afterRest(id);
+  if(nx){view.cur=nx;view.draft=null;view.more=null;tab='seance';view.page=null;render();scrollTo(0,0);return}render();finish()},
  recok:()=>{const th=view.rec?.then;view.rec=null;if(th){closeOv();return setSheet(th)}if(view.rest)return buildRest();close()},
  drop:v=>{const st=stOf();if(!st)return;syncKg();if(v==='off')st.dr=null;else{st.dr=st.dr||[];const prev=(st.dr.at(-1)||st).kg;st.dr.push({kg:Math.max(0,rnd(prev*.8,st.id)),r:st.r})}setSheet(st.id)},
  dropkg:v=>{const st=stOf();if(!st)return;syncKg();const [k,d]=v.split(':').map(Number),x=st.dr[k];x.kg=Math.max(0,Math.min(500,Math.round((x.kg+d*incOf(st.id))*100)/100));setSheet(st.id)},
@@ -117,7 +133,7 @@ const A={
   S.goalsEx=S.goalsEx||{};S.goalsEx[v]=stamp({kg:n,from:b,set:today(),ver:S.goalsEx[v]?.ver||0},'goalsEx',v);save();render();toast('Objectif fixé : '+fmt(n)+' kg')},
  delgoal:v=>{tomb('goalsEx',v);if(S.goalsEx)delete S.goalsEx[v];save();render()},
  badge:v=>{const b=BADGES.find(x=>x.id===v),pr=badgeProg(b,CTX());toast(esc(b.n)+' : '+esc(b.d)+(S.badges?.[v]?' · obtenu le '+dShort(S.badges[v].d):b.goal>1&&!['bench','squat','dead'].includes(b.k)?' · '+(b.k==='vol'?fmt(pr.cur/1000)+' / '+fmt(b.goal/1000)+' t':Math.floor(pr.cur)+' / '+b.goal):''))},
- pickprog:v=>{if(active())return toast('Une séance est en cours : termine-la d’abord.');S.cur=v;touch('cur');save();if(view.page==='progs')view={};render();scrollTo(0,0)},
+ pickprog:v=>{if(active())return toast('Une séance est en cours : termine-la d’abord.');S.cur=v;touch('cur');save();if(view.page==='progs')view={};if(curSheet==='choose')closeOv();render();scrollTo(0,0)},
  editplan:v=>{if(v){S.cur=v;touch('cur')}view.delprog=0;render();planSheet()},
  progedit:v=>{S.cur=v;touch('cur');view.delprog=0;save();render();planSheet()},
  addprog:()=>{const id='p'+uid();S.progs.push(stamp({id,n:'Séance '+String.fromCharCode(65+S.progs.length),items:[]}));S.cur=id;touch('cur');save();render();planSheet()},
@@ -228,11 +244,11 @@ const A={
  retrysave:()=>{persistLocal();banner();if(dbDoc)pushCloud();toast(localErr?'Toujours impossible : exporte tes données':'Enregistré')},
  /* onboarding */
  ob:v=>{view.ob=+v;render();scrollTo(0,0)},obt:v=>{view.obt=v;render()},
- obdone:()=>{const ch=view.obt||(S.logs.length?'keep':S.prof.sess<=3?'fb':S.prof.sess===4?'hb':'ppl');
-  if(ch!=='keep'&&TPL[ch]&&view.ob===3){S.progs.forEach(p=>tomb('progs',p.id));S.progs=progsFrom(ch);S.progs.forEach(p=>stamp(p,'progs',p.id));S.cur=S.progs[0].id;S.pn=TPL[ch].n;touch('cur');touch('pn')}
+ obdone:()=>{const ch=view.obt||(S.logs.length?'keep':'fb');
+  if(ch!=='keep'&&TPL[ch]){S.progs.forEach(p=>tomb('progs',p.id));S.progs=progsFrom(ch);S.progs.forEach(p=>stamp(p,'progs',p.id));S.cur=S.progs[0].id;S.pn=TPL[ch].n;touch('cur');touch('pn')}
   if(view.obw){const ob=S.bw.find(b=>b.d===today());S.bw=S.bw.filter(b=>b.d!==today());S.bw.push(stamp({d:today(),kg:S.prof.w,ver:ob?.ver||0},'bw',today()))}
-  S.prof.onb=1;S.prof.body=1;touch('prof');save();tab='seance';view={};render();scrollTo(0,0)},
- bodyok:()=>{S.prof.body=1;touch('prof');save();render()},
+  S.prof.onb=1;touch('prof');save();tab='seance';view={};render();scrollTo(0,0)},
+ bodyok:()=>{S.prof.body=1;touch('prof');save();if(tab==='prof')view={};render();scrollTo(0,0)},
  close:()=>close()
 };
 function updQty(){const q=parseNum($('#qq')?.value);if(q>0&&view.qf){view.qq=q;const b=$('#qmac');if(b)b.innerHTML=macTiles(per(view.qf,q))}}
@@ -266,6 +282,7 @@ document.addEventListener('change',ev=>{const t=ev.target,d=t.dataset,c=d.c;
  if(c==='fm'){view.fm=t.value;return}
  if(c==='gcid'){const v=t.value.trim();if(/^[\w-]+\.apps\.googleusercontent\.com$/.test(v)){try{localStorage.setItem('charge-gcid',v)}catch(e){}render()}else t.setAttribute('aria-invalid','true');return}});
 document.addEventListener('input',ev=>{const t=ev.target,i=t.dataset.i;
+ if(t.id==='dkg'||t.id==='dr'){const id=curEx(),n=parseNum(t.value);if(id&&isFinite(n))draftOf(id)[t.id==='dkg'?'kg':'r']=n;t.removeAttribute('aria-invalid');return}
  if(t.dataset.row){const [id,k,f]=t.dataset.row.split('|');view.rows=view.rows||{};const T=view.rows[id]=view.rows[id]||[];T[+k]=T[+k]||{};T[+k][f]=t.value.replace(',','.');t.removeAttribute('aria-invalid');return}
  if(i==='exq'){$('#exlist').innerHTML=exList(t.value);return}
  if(i==='lq'){view.lq=t.value;$('#lgrid').innerHTML=libCards();return}
@@ -273,6 +290,7 @@ document.addEventListener('input',ev=>{const t=ev.target,i=t.dataset.i;
  if(i==='qq')updQty()});
 document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&$('#ov').innerHTML){if(view.rest||view.rec)return;close()}
  if(ev.key==='Enter'&&ev.target.id==='bwin')A.savebw();if(ev.key==='Enter'&&ev.target.id==='code')A.codego();if(ev.key==='Enter'&&ev.target.id==='kgin'){ev.preventDefault();A.validate()}
+ if(ev.key==='Enter'&&(ev.target.id==='dkg'||ev.target.id==='dr')){ev.preventDefault();ev.target.blur();A.wdone()}
  if(ev.key==='Enter'&&ev.target.dataset?.row){ev.preventDefault();const [id,k]=ev.target.dataset.row.split('|');A.tick(id+'|'+k)}});
 /* sheets follow the visible viewport: the keyboard never hides the bottom button */
 if(window.visualViewport){const vv=()=>document.documentElement.style.setProperty('--vvh',visualViewport.height+'px');visualViewport.addEventListener('resize',vv);vv()}

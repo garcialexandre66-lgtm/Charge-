@@ -1,3 +1,14 @@
+# Charge 6.0 — nouvelle interface
+
+Interface refaite de zéro (le moteur de données, la synchro Google et les calculs sont conservés, tes données aussi).
+- **4 onglets** : Accueil, Progrès, Nutrition, Moi.
+- **Accueil** : la séance du jour et un bouton « Commencer ». En dessous, la semaine et la dernière séance.
+- **Séance** : un exercice à la fois. Objectif du jour en grand, boutons − / + pour la charge et les répétitions, « Valider la série ». Le repos démarre seul, puis l’appli passe à la série ou à l’exercice suivant. Pastilles numérotées pour changer d’exercice, « Remplacer » si la machine est prise, « Options » pour échauffement, série dégressive, disques et mouvement.
+- **Progrès** : chiffres du mois, derniers records, tes exercices (courbe au toucher), historique. Bilan du mois, records, trophées et bibliothèque rangés dans « Plus ».
+- **Moi** : profil, corps (poids, mensurations, photos, récupération), réglages, programme, sauvegarde et Google.
+- **Premier lancement** : un seul écran, choisir un programme et commencer.
+- Style clair et net, une couleur d’accent, police du téléphone (plus de téléchargement de police), mode sombre automatique.
+
 # Charge 5.3 (revue par 5 IA spécialisées, chaque remarque vérifiée)
 
 - **Synchro** : les suppressions (aliments, pesées, programmes, exercices, repas types, objectifs) ne reviennent plus ; un objectif refixé ou un programme réappliqué n’est plus effacé par un autre appareil ; une modification d’aliment n’est plus perdue pendant une synchro.

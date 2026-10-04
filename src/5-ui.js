@@ -1,38 +1,125 @@
 <script>
 /* ================= theme for the exercise drawings ================= */
 function themeFig(){if(typeof COL!=='object')return;const dark=matchMedia('(prefers-color-scheme: dark)').matches;
- Object.assign(COL,dark?{body:'#C9D1DE',near:'#E9EDF3',far:'#5C6779',mus:'#FF7468',eq:'#6F7A8C',eq2:'#9AA4B5',dark:'#3B4659',ac:'#FFD83D',bg:'#1A2130',floor:'#3B4659'}
-  :{body:'#5E6B82',near:'#18233A',far:'#AEB6C2',mus:'#D9443C',eq:'#8C95A3',eq2:'#6B7486',dark:'#B3BCB1',ac:'#1F5FD6',bg:'#E3E8E1',floor:'#B3BCB1'})}
+ Object.assign(COL,dark?{body:'#AEB6C4',near:'#F3F4F6',far:'#4A5262',mus:'#FF6B6B',eq:'#6B7486',eq2:'#9AA3B2',dark:'#3A4354',ac:'#6C93F5',bg:'#1F2533',floor:'#3A4354'}
+  :{body:'#8A94A6',near:'#1F2937',far:'#C3C9D3',mus:'#E5484D',eq:'#9AA3B2',eq2:'#6B7280',dark:'#CBD2DC',ac:'#2F5BEA',bg:'#EEF0F3',floor:'#C9CED6'})}
 themeFig();matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{themeFig();render()});
 
-/* ================= navigation ================= */
-const TABS=[['seance','Séance'],['prog','Progrès'],['corps','Corps'],['nut','Nutrition'],['prof','Profil']];
-function nav(){if(!S.prof.onb||BAD){$('#nav').hidden=true;return}$('#nav').hidden=false;const a=active();
- $('#nav').innerHTML=TABS.map(([k,l])=>`<button data-a="tab" data-v="${k}" ${tab===k?'aria-current="page"':''}>${ic(k)}${l}${k==='seance'&&a&&tab!=='seance'?'<span class="live"></span><span class="sr">, séance en cours</span>':''}</button>`).join('')}
+/* ================= navigation: 4 tabs ================= */
+I.home='<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>';
+const TABS=[['seance','Accueil','home'],['prog','Progrès','prog'],['nut','Nutrition','nut'],['prof','Moi','prof']];
+function nav(){if(!S.prof.onb||BAD){$('#nav').hidden=true;return}$('#nav').hidden=false;const a=active(),cur=tab==='corps'?'prof':tab;
+ $('#nav').innerHTML=TABS.map(([k,l,i])=>`<button data-a="tab" data-v="${k}" ${cur===k?'aria-current="page"':''}>${ic(i)}${l}${k==='seance'&&a&&tab!=='seance'?'<span class="live"></span><span class="sr">, séance en cours</span>':''}</button>`).join('')}
 function go(t,v={}){tab=t;view=v;render();scrollTo(0,0)}
 function pill(){const a=active(),R=view.rest;
  if(R&&S.prof.onb&&!BAD&&!$('#ov').innerHTML){const left=Math.max(0,Math.ceil((R.end-Date.now())/1000));$('#pill').innerHTML=`<button class="spill" data-a="restopen"><i aria-hidden="true"></i>${left>0?'Repos <span id="pillt">'+mmss(left)+'</span>':'Repos terminé'}</button>`;return}
- const show=S.prof.onb&&!BAD&&a&&sLogs(a.id).length&&(tab!=='seance'||view.page);
- $('#pill').innerHTML=show?`<button class="spill" data-a="tab" data-v="seance"><i aria-hidden="true"></i>Séance en cours, ${Math.round((Date.now()-a.start)/6e4)} min</button>`:''}
+ const show=S.prof.onb&&!BAD&&a&&(tab!=='seance'||view.page);
+ $('#pill').innerHTML=show?`<button class="spill" data-a="tab" data-v="seance"><i aria-hidden="true"></i>Reprendre la séance</button>`:''}
 /* empty sessions added after the fact and left without any set are removed */
 function cleanEmpty(){const rm=S.sess.filter(s=>s.retro&&s.state==='done'&&!sLogs(s.id).length&&view.sid!==s.id);if(rm.length){rm.forEach(s=>delSession(s.id));save()}}
 /* a screen that fails to draw shows what happened and how to get your data out, never a blank page */
 function render(){if(!BAD)cleanEmpty();nav();pill();let h;
  try{h=BAD?Recovery():S.prof.onb?({seance:Home,prog:Prog,corps:Corps,nut:Nut,prof:Prof})[tab]():Onboard()}
  catch(e){console.error(e);h=`<h1 class="md">Écran indisponible</h1><div class="card col"><p class="sm" style="margin:0">Cet écran n’a pas pu s’afficher. Tes données ne sont pas touchées.</p><p class="xs mut" style="margin:0">Détail : ${esc(e.message)}</p>
-  <div class="row"><button class="btn2 grow" data-a="export">Exporter mes données</button><button class="btn2 grow" data-a="tab" data-v="${tab==='prof'?'seance':'prof'}">Aller ${tab==='prof'?'à la séance':'au profil'}</button></div></div>`}
+  <div class="row"><button class="btn2 grow" data-a="export">Exporter mes données</button><button class="btn2 grow" data-a="tab" data-v="${tab==='prof'?'seance':'prof'}">Aller ${tab==='prof'?'à l’accueil':'à Moi'}</button></div></div>`}
  $('#app').innerHTML=h;if(tab==='prog'&&view.page==='ex'&&!$('#ov').innerHTML)startDemo(view.ex)}
-/* refresh behind an open sheet without rebuilding the sheet the user is typing in */
+/* refresh behind an open sheet without rebuilding what the user is typing in */
 function softRender(){if(!$('#ov').innerHTML&&!document.activeElement?.matches?.('#app input'))render();else{nav();pill()}}
-setInterval(()=>{const e=$('#elapsed'),a=active();if(e&&a)e.textContent=Math.round((Date.now()-a.start)/6e4)+' min';pill()},30000);
-const back=(a='back')=>`<button class="x" data-a="${a}" aria-label="Retour">${ic('back',20)}</button>`;
-const closeBtn=`<button class="x" data-a="close" aria-label="Fermer">${ic('x',18)}</button>`;
+setInterval(()=>{const e=$('#elapsed'),a=active();if(e&&a)e.textContent=Math.round((Date.now()-a.start)/6e4)+' min'},30000);
+const back=(a='back',l='Retour')=>`<button class="x" data-a="${a}" aria-label="${l}">${ic('back',22)}</button>`;
+const closeBtn=`<button class="x" data-a="close" aria-label="Fermer">${ic('x',20)}</button>`;
+const chev=`<span class="chev">${ic('chev',18)}</span>`;
 function tgtTxt(id,kg,r){const u=uOf(id),lt=ltOf(id),c=u==='reps'?String(r):r+' '+UL[u][0];
  if(u==='reps')return loadTxt(lt,kg)+' × '+c;return c+(kg>0||lt==='assist'?' · '+loadTxt(lt,kg):'')}
 function bigOf(id,l){if(!l)return {n:'—',u:''};const lt=l.lt||ltOf(id),u=l.un||uOf(id);
  if(lt==='load'&&u==='reps')return {n:fmt(l.kg),u:'kg'};if(u!=='reps')return {n:String(l.r),u:UL[u][0]};
  return lt==='bw'?(l.kg>0?{n:'+'+fmt(l.kg),u:'kg'}:{n:String(l.r),u:'rép.'}):{n:fmt(l.kg),u:'kg ass.'}}
 
+/* ================= Accueil ================= */
+function weekStrip(){const d=new Date(),dn=['L','M','M','J','V','S','D'],mon=new Date(d);mon.setDate(d.getDate()-((d.getDay()+6)%7));
+ return dn.map((l,i)=>{const x=new Date(mon);x.setDate(mon.getDate()+i);const k=key(x),D=sessOfDay(k).filter(s=>s.state==='done'&&sWork(s.id).length),fut=k>today();
+  return `<button data-a="day" data-v="${k}" ${fut?'disabled':''} aria-label="${cap(dLong(k))}${D.length?', '+pl(D.length,'séance'):', pas de séance'}"><span class="xs dim" aria-hidden="true">${l}</span><span class="d ${k===today()?'today':''} ${D.length?'done':''}" aria-hidden="true">${D.length?ic('check',18):x.getDate()}</span></button>`}).join('')}
+/* values proposed for the next set: what you typed, else the last set of today, else the target, else last time */
+function rowDefaults(id,n){const p=planItem(id)||{s:3,rmin:10},tw=curWork(id),tg=target(id),lw=lastOne(id),lt=ltOf(id),typed=view.rows?.[id]||[],out=[];
+ let prev=tw.at(-1)?{kg:tw.at(-1).kg,r:tw.at(-1).r}:tg?{kg:tg.kg,r:tg.r}:lw?{kg:lw.kg,r:lw.r}:{kg:lt==='load'?'':0,r:p.rmin};
+ for(let k=0;k<n;k++){const t=typed[k]||{};const v={kg:t.kg??prev.kg,r:t.r??prev.r};out.push(v);prev=v}return out}
+function Home(){if(view.page==='progs')return Programs();if(active())return Workout();
+ const P=plan(),setsTot=P.reduce((s,p)=>s+p.s,0),estMin=Math.round(P.reduce((s,p)=>s+p.s*((p.rest||S.prof.rest)+45),0)/60/5)*5;
+ const m=mondayOf(today()),n=weekN(m),goal=wkGoal(m),st=streak(),last=[...doneSess()].pop();
+ const expDays=S.prof.lastExp?daysAgo(S.prof.lastExp):null,needExp=!dbDoc&&!(gOn()&&GS.last&&Date.now()-GS.last<14*864e5)&&doneSess().length>=3&&(expDays==null||expDays>14);
+ const h=new Date().getHours(),hello=(h<5||h>=18?'Bonsoir':'Bonjour')+(S.prof.name?' '+esc(S.prof.name):'');
+ return `<header class="col g4"><span class="sm dim">${cap(dLong(today()))}</span><h1>${hello}</h1></header>
+ <section class="today" aria-label="Séance du jour"><div class="col g4"><span class="k">Ta séance du jour</span><h2>${esc(prog().n)}</h2><span class="m">${pl(P.length,'exercice')}, environ ${estMin} min</span></div>
+  ${P.length?`<div class="exl">${P.slice(0,6).map(p=>`<span>${esc(exo(p.id).n)}</span>`).join('')}${P.length>6?`<span>+${P.length-6}</span>`:''}</div>`:''}
+  ${P.length?`<button class="btn big" data-a="startsess">${ic('seance',22)} Commencer</button>`:`<button class="btn big" data-a="editplan">Ajouter des exercices</button>`}
+  <div class="row sb"><button class="link" data-a="choosesess">Changer de séance</button><button class="link" data-a="editplan">Modifier</button></div></section>
+ <section class="card col"><div class="row sb"><h2>Cette semaine</h2><span class="sm ${n>=goal?'okc b':'mut'}">${n} sur ${goal} séance${goal>1?'s':''}</span></div>
+  <div class="wk" role="group" aria-label="Jours de la semaine">${weekStrip()}</div>
+  ${st>1?`<span class="sm mut">${st} semaines d’affilée avec au moins une séance. Continue !</span>`:''}</section>
+ ${gPending()&&!gLive()&&G.state!=='sync'?`<section class="card col"><b>Google Drive</b><span class="sm mut">Des modifications ne sont pas encore enregistrées sur ton Google Drive.</span><button class="btn2 acb" data-a="gsync">Synchroniser</button></section>`:''}
+ ${needExp?`<section class="card warn col"><b>Pense à sauvegarder</b><span class="sm">${expDays==null?'Tu n’as jamais sauvegardé tes données.':'Dernière sauvegarde '+agoTxt(S.prof.lastExp)+'.'} Connecte Google (onglet Moi) ou exporte un fichier.</span><button class="btn2" data-a="export">Exporter un fichier</button></section>`:''}
+ ${last?`<section class="section"><h2 class="lbl">Dernière séance</h2><div class="list">${sessRow(last)}</div></section>`:''}`}
+/* choose another session of the programme (only before starting) */
+function chooseSheet(){const sug=suggested();
+ sheet(`<div class="grab"></div><div class="row sb"><h2 id="sheet-title" tabindex="-1">Quelle séance aujourd’hui ?</h2>${closeBtn}</div>
+ <div class="col">${S.progs.map(p=>`<button class="item ${p.id===S.cur?'on':''}" data-a="pickprog" data-v="${p.id}" aria-pressed="${p.id===S.cur}"><div class="grow"><div class="t">${esc(p.n)} ${p.id===sug?'<span class="tag">Suite logique</span>':''}</div><div class="xs dim">${p.items.map(x=>esc(exo(x.id).n)).join(', ')||'Aucun exercice'}</div></div>${p.id===S.cur?ic('check',20):''}</button>`).join('')}</div>
+ <button class="btn2" data-a="page" data-v="progs">Changer de programme</button>`,'choose')}
+
+/* ================= Séance en cours: one exercise at a time ================= */
+function curEx(){const P=plan();if(view.cur&&P.some(p=>p.id===view.cur))return view.cur;return (P.find(p=>curWork(p.id).length<p.s)||P[0])?.id}
+function draftOf(id){if(view.draft?.id===id)return view.draft;const d=rowDefaults(id,1)[0],lt=ltOf(id);
+ view.draft={id,kg:d.kg===''?(lt==='load'?20:0):+d.kg,r:+d.r||planItem(id)?.rmin||10};return view.draft}
+function Workout(){const a=active(),P=plan(),id=curEx(),stale=isStale(a)&&view.keep!==a.id,others=otherActives();
+ const nW=sWork(a.id).length,setsTot=P.reduce((s,p)=>s+p.s,0),setsDone=P.reduce((s,p)=>s+Math.min(p.s,curWork(p.id).length),0);
+ const top=`<div class="wtop"><div class="grow col" style="gap:2px"><span class="t">${esc(sessName(a))}</span><span class="xs dim"><span id="elapsed">${Math.round((Date.now()-a.start)/6e4)} min</span>, ${setsDone} séries sur ${setsTot}</span></div>
+  ${nW?`<button class="btn2 acb" data-a="finish">Terminer</button>`:`<button class="btn2" data-a="cancelsess">Annuler</button>`}</div>`;
+ const warn=`${stale?`<section class="card warn col"><b>Séance du ${dLong(key(a.start))} pas validée</b><span class="sm">${key(lastAct(a))!==today()?'Ta prochaine série ouvrira une nouvelle séance, celle-ci sera validée automatiquement.':'Dernière série à '+hm(lastAct(a))+'.'}</span><div class="row"><button class="btn2 grow" data-a="finish">La valider</button><button class="btn2 grow" data-a="keepgoing">Continuer</button></div></section>`:''}
+  ${others.map(o=>`<section class="card warn col"><b>Une autre séance est ouverte</b><span class="sm">« ${esc(sessName(o))} », ${dShort(key(o.start))} à ${hm(o.start)}${o.dev&&o.dev!==DEV?', sur un autre appareil':''}.</span><div class="row wrap">${sWork(o.id).length?`<button class="btn2 grow" data-a="closeother" data-v="${o.id}">La valider</button>`:`<button class="btn2 grow" data-a="dropother" data-v="${o.id}">La supprimer</button>`}<button class="btn2 grow" data-a="useother" data-v="${o.id}">Passer dessus</button></div></section>`).join('')}`;
+ if(!id)return `${top}${warn}<div class="empty">Cette séance n’a pas d’exercice.<button class="btn2 acb" data-a="pickex" data-v="today">Ajouter un exercice</button></div>`;
+ const p=planItem(id),e=exo(id),L=curLogs(id),tw=L.filter(l=>!l.w),lt=ltOf(id),u=uOf(id),tg=target(id),lw=lastWork(id),done=tw.length>=p.s,more=view.more===id;
+ const steps=`<div class="steps" role="tablist" aria-label="Exercices de la séance">${P.map((q,i)=>{const ok=curWork(q.id).length>=q.s;return `<button role="tab" aria-selected="${q.id===id}" class="${q.id===id?'on':''} ${ok?'done':''}" data-a="wex" data-v="${q.id}" aria-label="${i+1}. ${esc(exo(q.id).n)}${ok?', terminé':''}">${ok?ic('check',16):''}${i+1}</button>`}).join('')}<button data-a="pickex" data-v="today" aria-label="Ajouter un exercice">${ic('plus',18)}</button></div>`;
+ const pr=pairOf(id),idx=P.findIndex(q=>q.id===id)+1;
+ const head=`<div class="exhead"><button class="thumb" style="padding:0;border:0" data-a="exdetail" data-v="${id}" aria-label="Voir ${esc(e.n)}">${figId(id)?figSvg(figId(id),{t:1,arrow:false}):''}</button>
+  <div class="grow col" style="gap:2px"><span class="xs dim">Exercice ${idx} sur ${P.length}${pr?', en superset avec '+esc(exo(pr.a.id===id?pr.b.id:pr.a.id).n):''}</span><h1 class="md" style="margin:0">${esc(e.n)}</h1><span class="sm mut">${p.s} séries de ${repTxt(p)}${e.seat?', réglage '+esc(e.seat):''}</span></div></div>`;
+ const goalBox=tg?`<div class="goal"><span class="xs b" style="color:var(--ac)">${tg.up?'Aujourd’hui, tu montes':'Objectif du jour'}</span><span class="v">${esc(tgtTxt(id,tg.kg,tg.r))}</span><span class="xs mut">${esc(tg.why)}</span></div>`
+  :lw?'':`<div class="goal"><span class="xs b" style="color:var(--ac)">Première fois</span><span class="sm">Choisis une charge que tu pourrais soulever 2 fois de plus que demandé.</span></div>`;
+ const rows=[...L.map(l=>`<button class="set done ${l.w?'warm':''}" data-a="editlog" data-v="${l.id}" aria-label="Corriger : ${esc(setTxt(l))}"><span class="n" aria-hidden="true">${l.w?'éch.':tw.indexOf(l)+1}</span><span class="grow v">${esc(setTxt(l))}</span>${isRec(l)?'<span class="tag rec">Record</span>':l.w?'':`<span class="xs dim">${FEEL[l.f]||''}</span>`}<span class="chev">${ic('edit',16)}</span></button>`),
+  ...Array.from({length:Math.max(0,p.s-tw.length)},(_,k)=>{const n=tw.length+k+1,dd=draftOf(id),d=rowDefaults(id,k+1)[k],kg=d.kg===''?dd.kg:+d.kg;return `<div class="set ${k===0?'now':'todo'}"><span class="n" aria-hidden="true">${n}</span><span class="grow v">${k===0?'À faire maintenant':esc(tgtTxt(id,kg,+d.r))}</span></div>`})].join('');
+ const D=draftOf(id),st=u==='reps'?1:5,kL={load:'Charge',bw:'Lest ajouté',assist:'Assistance'}[lt];
+ const dials=`<section class="dials" aria-label="Série ${tw.length+1}">
+  <div class="dial"><span class="lab" id="dkl">${kL} (kg)</span><div class="ctl"><button class="round" data-a="dkg" data-v="-1" aria-label="Moins ${fmt(incOf(id))} kg">−</button><input id="dkg" inputmode="decimal" autocomplete="off" aria-labelledby="dkl" value="${String(D.kg).replace('.',',')}"><button class="round" data-a="dkg" data-v="1" aria-label="Plus ${fmt(incOf(id))} kg">+</button></div>${lt!=='load'?`<span class="xs dim">${lt==='bw'?'0 = sans lest':'moins d’assistance = plus dur'}</span>`:''}</div>
+  <hr><div class="dial"><span class="lab" id="drl">${UL[u][1]}</span><div class="ctl"><button class="round" data-a="dr" data-v="-${st}" aria-label="Moins ${st}">−</button><input id="dr" inputmode="numeric" autocomplete="off" aria-labelledby="drl" value="${D.r}"><button class="round" data-a="dr" data-v="${st}" aria-label="Plus ${st}">+</button></div></div>
+  <p id="seterr" class="sm redc" role="alert" style="margin:0;text-align:center" hidden></p>
+  <button class="btn big ok" data-a="wdone">${ic('check',22)} Valider la série ${tw.length+1}</button></section>`;
+ const nx=P.find(q=>q.id!==id&&curWork(q.id).length<q.s);
+ const after=done&&!more?`<section class="card col" style="align-items:center;text-align:center"><span class="okc b" style="font-size:20px">${ic('check',22)} Exercice terminé</span>
+   ${nx?`<button class="btn big" data-a="wex" data-v="${nx.id}">Exercice suivant : ${esc(exo(nx.id).n)}</button>`:`<button class="btn big ok" data-a="finish">Terminer la séance</button>`}
+   <button class="link" data-a="wmore" data-v="${id}">${ic('plus',16)} Faire une série en plus</button></section>`:dials;
+ return `${top}${warn}${steps}${head}${goalBox}
+ ${lw?`<p class="sm mut" style="margin:0">La dernière fois (${dShort(key(lw[0].t))}) : ${esc(lw.map(l=>setTxt(l)).join(', '))}</p>`:''}
+ <section class="card" style="padding:4px 16px"><div class="sets">${rows}</div></section>
+ ${after}
+ <div class="row"><button class="btn2 grow" data-a="set" data-v="${id}">Options</button><button class="btn2 grow" data-a="swapsheet" data-v="${id}">${ic('swap',16)} Remplacer</button></div>`}
+/* machine taken: replace this exercise for today */
+function swapSheet(id){const e=exo(id),tl=curLogs(id),alts=S.ex.filter(x=>x.id!==id&&x.m[0]===e.m[0]&&!plan().some(q=>q.id===x.id));
+ sheet(`<div class="grab"></div><div class="row sb"><h2 id="sheet-title" tabindex="-1">Remplacer ${esc(e.n)}</h2>${closeBtn}</div>
+ ${tl.length?'<p class="sm mut" style="margin:0">Des séries sont déjà notées sur cet exercice : il reste dans la séance, ajoute plutôt un exercice.</p><button class="btn2" data-a="pickex" data-v="today">Ajouter un exercice</button>'
+ :`<span class="sm mut">Pour aujourd’hui seulement. Ton programme ne change pas.</span><div class="list">${alts.map(x=>`<button class="li" data-a="swapto" data-v="${id}|${x.id}">${thumb(x.id)}<div class="grow"><div class="t">${esc(x.n)}</div><div class="s">${KINDS[x.k]||''}${best(x.id)?', record '+fmt(best(x.id))+' kg':''}</div></div>${chev}</button>`).join('')||'<div class="li">Aucun exercice équivalent.</div>'}</div>`}
+ ${planItem(id)?.orig?`<button class="btn2" data-a="unswap" data-v="${planItem(id).orig}">Revenir à ${esc(exo(planItem(id).orig).n)}</button>`:''}
+ ${planItem(id)?.extra&&!tl.length?`<button class="btn2 danger" data-a="rmextra" data-v="${id}">Retirer de la séance</button>`:''}`,'swap')}
+
+/* ================= Programmes ================= */
+function Programs(){const c=view.tpl,a=active();
+ return `<div class="row">${back()}<span class="sm mut">Accueil</span></div><h1>Programme</h1>
+ ${a?`<div class="card warn sm">Une séance est en cours : les changements valent pour les prochaines séances.</div>`:''}
+ <section class="section"><div class="shead"><h2>Ton programme : ${esc(S.pn)}</h2></div><span class="sm mut">Les séances tournent dans l’ordre. Objectif : ${S.prof.sess} par semaine.</span>
+ <div class="list">${S.progs.map(p=>`<button class="li" data-a="editplan" data-v="${p.id}"><div class="grow"><div class="t">${esc(p.n)} ${p.id===S.cur?'<span class="tag">Prochaine</span>':''}</div><div class="s">${pl(p.items.length,'exercice')} : ${p.items.slice(0,4).map(x=>esc(exo(x.id).n)).join(', ')}${p.items.length>4?'…':''}</div></div>${ic('edit',18)}</button>`).join('')}
+ <button class="li" data-a="addprog"><span class="ac">${ic('plus',18)} Ajouter une séance</span></button></div>
+ <label for="pn">Nom du programme<input id="pn" data-c="pn" value="${esc(S.pn)}" maxlength="40"></label></section>
+ ${[['','Programmes tout prêts',''],['f','Fessiers et cuisses','Priorité au bas du corps, avec assez de haut du corps pour rester équilibré.']].map(([cat,h,sub])=>`<section class="section"><div class="shead"><h2>${h}</h2></div>${sub?`<span class="sm mut">${sub}</span>`:''}
+ ${Object.entries(TPL).filter(([,t])=>(t.cat||'')===cat).map(([k,t])=>`<div class="card col g6 ${c===k?'hl':''}"><div class="row sb"><b style="font-size:17px">${t.n}</b><span class="tag grey">${t.lvl}</span></div><span class="sm mut">${t.info}.</span>
+  ${c===k?`<span class="sm">Remplacer ton programme par « ${t.n} » ? Ton historique et tes records sont gardés.</span><div class="row"><button class="btn2 grow" data-a="tpl" data-v="">Annuler</button><button class="btn2 grow acb" data-a="usetpl" data-v="${k}">Oui, l’utiliser</button></div>`
+  :`<button class="btn2" data-a="tpl" data-v="${k}">Choisir</button>`}</div>`).join('')}</section>`).join('')}`}
 /* ================= data recovery (unreadable data: nothing is written until you choose) ================= */
 function Recovery(){if(!view.baks)listBackups().then(L=>{view.baks=L;render()});
  return `<div class="page-head"><span class="date">Charge ne peut pas lire tes données</span><h1 class="md">${esc(BAD.why)}</h1></div>
@@ -45,85 +132,6 @@ function Recovery(){if(!view.baks)listBackups().then(L=>{view.baks=L;render()});
 function importCard(){const N=view.imp;return `<div class="card hl col"><span class="sm">Remplacer les données par cette sauvegarde (${pl(N.sess.filter(s=>s.state==='done').length,'séance')}, ${pl(N.logs.length,'série')}) ?${BAD?'':' Une copie de secours des données actuelles est faite avant.'}</span>
  ${view.impwarn?`<p class="sm redc" style="margin:0">${view.impwarn}</p>`:''}
  <div class="row"><button class="btn2 grow" data-a="noimp">Annuler</button><button class="btn2 grow acb" data-a="doimp">${view.impforce?'Remplacer sans copie':'Remplacer'}</button></div></div>`}
-
-/* ================= Séance: the logbook page ================= */
-function weekStrip(){const d=new Date(),dn=['L','M','M','J','V','S','D'],mon=new Date(d);mon.setDate(d.getDate()-((d.getDay()+6)%7));
- return dn.map((l,i)=>{const x=new Date(mon);x.setDate(mon.getDate()+i);const k=key(x),D=sessOfDay(k).filter(s=>s.state==='done'&&sWork(s.id).length),fut=k>today();
-  const lab=D.length>1?D.length+' séances':D.length?sessName(D[0]):'';
-  return `<button class="wday" data-a="day" data-v="${k}" ${fut?'disabled':''} aria-label="${cap(dLong(k))}${D.length?', '+pl(D.length,'séance'):''}"><span class="xs mut" aria-hidden="true">${l}</span><span class="day ${k===today()?'today':''} ${D.length?'done':''}" aria-hidden="true">${x.getDate()}</span><span class="dlab" aria-hidden="true">${esc(lab)}</span></button>`}).join('')}
-/* default values of the pending lines of an exercise: what you typed, else the line above, else the target, else last time */
-function rowDefaults(id,n){const p=planItem(id)||{s:3,rmin:10},tw=curWork(id),tg=target(id),lw=lastOne(id),lt=ltOf(id),typed=view.rows?.[id]||[],out=[];
- let prev=tw.at(-1)?{kg:tw.at(-1).kg,r:tw.at(-1).r}:tg?{kg:tg.kg,r:tg.r}:lw?{kg:lw.kg,r:lw.r}:{kg:lt==='load'?'':0,r:p.rmin};
- for(let k=0;k<n;k++){const t=typed[k]||{};const v={kg:t.kg??prev.kg,r:t.r??prev.r};out.push(v);prev=v}return out}
-function exBlock(p,i,P,a,nowId){const e=exo(p.id),id=p.id,L=curLogs(id),tw=L.filter(l=>!l.w),u=uOf(id),lt=ltOf(id),tg=target(id),ok=tw.length>=p.s;
- const pend=Math.max(0,p.s-tw.length),D=rowDefaults(id,Math.max(pend,1)),uL=u==='reps'?'rép.':UL[u][0],kL=lt==='load'?'kg':lt==='bw'?'+kg':'ass.';
- const pr=pairOf(id),cur=nowId===id;
- const head=`<div class="exh"><button class="thumb" data-a="set" data-v="${id}" aria-label="Détails de ${esc(e.n)}" style="padding:0">${figId(id)?figSvg(figId(id),{t:1,arrow:false}):''}${ok?`<span class="ck">${ic('check',24)}</span>`:''}</button>
-  <button class="grow" data-a="set" data-v="${id}" style="background:none;border:0;padding:0;text-align:left;color:var(--ink);min-height:44px"><div class="t">${esc(e.n)}</div>
-  <div class="p">${p.s} × ${repTxt(p)}${p.orig?', remplace '+esc(exo(p.orig).n):''}${p.extra?', ajouté':''}${pr?', superset avec '+esc(exo(pr.a.id===id?pr.b.id:pr.a.id).n):''}${e.seat?', réglage '+esc(e.seat):''}</div>
-  ${!tw.length&&tg?`<div class="goal">${tg.up?'<b class="hl">'+esc(tgtTxt(id,tg.kg,tg.r))+'</b> aujourd’hui':'Objectif <b>'+esc(tgtTxt(id,tg.kg,tg.r))+'</b>'}</div>`:''}</button>
-  <button class="x s" data-a="set" data-v="${id}" aria-label="Plus d’options pour ${esc(e.n)}">${ic('more',18)}</button></div>`;
- const done=L.map(l=>`<div class="srow done ${l.w?'warm':''}"><span class="n" aria-hidden="true">${l.w?'éch.':tw.indexOf(l)+1}</span>
-  <button class="vbtn" data-a="editlog" data-v="${l.id}" aria-label="Corriger ${l.w?'l’échauffement':'la série '+(tw.indexOf(l)+1)} : ${esc(setTxt(l))}"><span class="val">${esc(setTxt(l))}</span>${l.w?'':`<span class="xs mut">${FEEL[l.f]||''}</span>`}${isRec(l)?'<span class="tag rec">record</span>':''}</button>
-  <span class="tick on" aria-hidden="true">${ic('check',22)}</span></div>`).join('');
- const rows=pend?D.slice(0,pend).map((v,k)=>{const n=tw.length+k+1,now=cur&&k===0;
-  return `<div class="srow ${now?'now':''}"><span class="n" aria-hidden="true">${n}</span>
-  <label class="fld"><span class="sr">${LTIN[lt]} série ${n}</span><input inputmode="decimal" autocomplete="off" data-row="${id}|${k}|kg" value="${v.kg===''?'':String(v.kg).replace('.',',')}" placeholder="${lt==='load'?'–':'0'}"><span aria-hidden="true">${kL}</span></label>
-  <span class="xx" aria-hidden="true">×</span>
-  <label class="fld"><span class="sr">${UL[u][1]} série ${n}</span><input inputmode="numeric" autocomplete="off" data-row="${id}|${k}|r" value="${v.r}"><span aria-hidden="true">${uL}</span></label>
-  <button class="tick" data-a="tick" data-v="${id}|${k}" aria-label="Valider la série ${n} de ${esc(e.n)}">${ic('check',22)}</button></div>`}).join(''):'';
- return `<section class="exb ${ok?'done':''} ${cur?'cur':''}" aria-label="${esc(e.n)}">${head}<div class="srows">${done}${rows}</div>
- <div class="addrow">${ok?`<button class="link mutl" data-a="tickmore" data-v="${id}">${ic('plus',16)} Série en plus</button>`:''}</div></section>`}
-function Home(){if(view.page==='progs')return Programs();
- const a=active(),P=plan(),stale=isStale(a)&&view.keep!==a.id,others=otherActives();
- const setsTot=P.reduce((s,p)=>s+p.s,0),setsDone=P.reduce((s,p)=>s+Math.min(p.s,curWork(p.id).length),0),nWork=a?sWork(a.id).length:0;
- const nowId=P.find(p=>curWork(p.id).length<p.s)?.id,allDone=a&&!nowId&&nWork>0;
- const estMin=Math.round(P.reduce((s,p)=>s+p.s*((p.rest||S.prof.rest)+45),0)/60/5)*5;
- const F=fatigue(0),hot=[...new Set(P.flatMap(p=>exo(p.id).m.slice(0,1)))].filter(m=>(F[m]?.f||0)>.5);
- const CH=challenges(),nt=nutDay(today()),g=goals(),st=streak(),sug=suggested();
- const expDays=S.prof.lastExp?daysAgo(S.prof.lastExp):null,needExp=!dbDoc&&!(gOn()&&GS.last&&Date.now()-GS.last<14*864e5)&&doneSess().length>=3&&(expDays==null||expDays>14);
- return `<header class="page-head"><span class="date">${cap(dLong(today()))}${S.prof.name?', '+esc(S.prof.name):''}</span>
- <h1>${esc(a?sessName(a):prog().n)}</h1>
- ${a?`<div class="livebar"><span class="dotr" aria-hidden="true"></span><span>En cours depuis <span id="elapsed">${Math.round((Date.now()-a.start)/6e4)} min</span>, ${setsDone} séries sur ${setsTot}</span></div>`
-  :`<span class="meta">${pl(P.length,'exercice')}, ${pl(setsTot,'série')}, environ ${estMin} min. <button class="link" style="min-height:0" data-a="page" data-v="progs">Changer de programme</button></span>`}</header>
- ${stale?`<section class="card warn col" style="gap:10px"><b>Séance du ${dLong(key(a.start))} pas encore validée</b><span class="sm">Dernière série à ${hm(lastAct(a))}. ${key(lastAct(a))!==today()?'Ta prochaine série ouvrira une nouvelle séance : celle-ci sera validée automatiquement.':'Valide-la pour la compter, ou continue-la.'}</span>
-  <div class="row"><button class="btn2 grow" data-a="finish">Valider</button><button class="btn2 grow" data-a="keepgoing">Continuer</button></div></section>`:''}
- ${others.map(o=>`<section class="card warn col" style="gap:10px"><b>Une autre séance est ouverte</b><span class="sm">« ${esc(sessName(o))} », commencée le ${dShort(key(o.start))} à ${hm(o.start)}${o.dev&&o.dev!==DEV?' sur un autre appareil':''}, ${pl(sWork(o.id).length,'série')}.</span>
-  <div class="row wrap">${sWork(o.id).length?`<button class="btn2 grow" data-a="closeother" data-v="${o.id}">La valider</button>`:`<button class="btn2 grow" data-a="dropother" data-v="${o.id}">La supprimer (vide)</button>`}<button class="btn2 grow" data-a="useother" data-v="${o.id}">Continuer celle-ci</button></div></section>`).join('')}
- ${allDone?`<button class="btn hlb" data-a="finish">${ic('check',20)} Valider la séance</button>`:!a&&P.length?`<p class="xs mut" style="margin:-8px 0 0">Coche une série pour démarrer la séance. Les charges proposées viennent de ta dernière fois.</p>`:''}
- ${P.map((p,i)=>exBlock(p,i,P,a,nowId)).join('')||'<div class="empty">Cette séance est vide.<button class="btn2 acb" data-a="editplan">Ajouter des exercices</button></div>'}
- <div class="row"><button class="btn2 grow" data-a="pickex" data-v="today">${ic('plus',16)} Exercice en plus</button><button class="btn2 grow" data-a="editplan">${ic('edit',16)} Modifier</button></div>
- ${a&&nWork&&!allDone?`<button class="btn ghost" data-a="finish">Terminer la séance</button>`:''}
- ${a&&!nWork?`<button class="link mutl" style="align-self:center" data-a="cancelsess">Annuler cette séance</button>`:''}
- ${S.progs.length>1&&!a?`<section class="col g6"><h2 class="lbl">Séance du jour</h2><div class="seg" role="group" aria-label="Séance du jour">${S.progs.map(p=>`<button class="${p.id===S.cur?'on':''}" aria-pressed="${p.id===S.cur}" data-a="pickprog" data-v="${p.id}">${esc(p.n)}${p.id===sug&&p.id!==S.cur?'<span class="dot"></span><span class="sr"> (suggérée)</span>':''}</button>`).join('')}</div>
-  ${sug&&sug!==S.cur?`<span class="sm mut">Suite de ta rotation : <button class="link" data-a="pickprog" data-v="${sug}">${esc(pname(sug))}</button></span>`:''}</section>`:''}
- ${hot.length&&!allDone?`<p class="sm mut" style="margin:0">${hot.map(cap).join(', ')} : séance récente sur ce${hot.length>1?'s':''} muscle${hot.length>1?'s':''}. Fie-toi à tes sensations.</p>`:''}
- ${gPending()&&!gLive()&&G.state!=='sync'?`<section class="card col" style="gap:8px"><b>Google Drive</b><span class="sm">Des modifications ne sont pas encore enregistrées sur ton Google Drive${GS.last?' (dernière synchro '+agoTxt(key(GS.last))+')':''}.</span><button class="btn2 acb" data-a="gsync">Synchroniser</button></section>`:''}
- ${needExp?`<section class="card col" style="gap:8px"><b>Sauvegarde</b><span class="sm">${expDays==null?'Tu n’as jamais exporté tes données.':'Dernier export '+agoTxt(S.prof.lastExp)+'.'} Tout est sur ce téléphone uniquement : un fichier exporté te protège si le téléphone est perdu ou effacé.</span><button class="btn2 acb" data-a="export">Exporter maintenant</button></section>`:''}
- <section class="col" style="gap:8px"><div class="row sb"><h2 class="lbl">Cette semaine</h2><span class="streak">${st?pl(st,'semaine')+' d’affilée':''}</span></div>
- <div class="week" role="group" aria-label="Cette semaine (touche un jour pour voir ou corriger)">${weekStrip()}</div></section>
- <details class="fold"><summary>Défis de la semaine, ${CH.filter(c=>c.cur>=c.goal).length} sur ${CH.length}</summary>
- ${CH.map(c=>{const ok=c.cur>=c.goal;return `<div class="chal"><span class="ck2 ${ok?'on':''}" aria-hidden="true">${ok?ic('check',14):''}</span><div class="col" style="gap:5px"><span class="sm" style="${ok?'color:var(--ink2);text-decoration:line-through':''}">${esc(c.n)}${ok?'<span class="sr"> (réussi)</span>':''}</span><div class="bar" aria-hidden="true"><i style="width:${Math.min(100,c.cur/c.goal*100)}%"></i></div></div><span class="sm mut">${fmt(Math.min(c.cur,c.goal))}/${fmt(c.goal)}</span></div>`}).join('')}
- ${(()=>{const nb=nextBadge();return nb?`<button class="row link" style="gap:10px;text-decoration:none;font-weight:400;margin-top:4px;width:100%" data-a="tab" data-v="prof">${badgeSvg(nb.b,false,32)}<span class="sm grow" style="text-align:left">Prochain trophée : <b>${esc(nb.b.n)}</b><br><span class="xs mut">${esc(nb.txt)}</span></span>${ic('chev',14)}</button>`:''})()}</details>
- ${lastWeekCard()}
- <button class="card col" style="text-align:left;width:100%;color:var(--ink)" data-a="tab" data-v="nut"><div class="row sb"><span class="lbl">Nutrition</span><span><b class="num" style="font-size:22px">${nf(nt.k)}</b> sur ${nf(g.k)} kcal</span></div>
- <div class="bar" aria-hidden="true"><i class="${nt.k>g.k*1.05?'over':''}" style="width:${Math.min(100,nt.k/g.k*100)}%"></i></div><span class="sm mut">Protéines ${Math.round(nt.p)} sur ${g.p} g</span></button>`}
-
-/* ================= Programmes ================= */
-function Programs(){const c=view.tpl,a=active();
- return `<div class="row">${back()}<span class="lbl">Ton plan d’entraînement</span></div>
- <h1>Programme</h1>
- ${a?`<div class="card sm">Une séance est en cours : ce que tu changes ici vaut pour les <b>prochaines</b> séances. La séance en cours garde son plan.</div>`:''}
- <section class="card col"><label for="pn">Nom du programme<input id="pn" data-c="pn" value="${esc(S.pn)}" maxlength="40"></label>
-  <span class="sm mut">${pl(S.progs.length,'séance')} en rotation, objectif ${S.prof.sess} par semaine</span></section>
- <section class="col">${S.progs.map(p=>`<div class="card col g6"><div class="row sb"><h2>${esc(p.n)}</h2>${p.id===S.cur?'<span class="tag">Prochaine</span>':`<button class="link" data-a="pickprog" data-v="${p.id}">Faire la prochaine fois</button>`}</div>
-  <div class="sm mut">${p.items.map(x=>`${esc(exo(x.id).n)} ${x.s}×${repTxt(x)}`).join(', ')||'Aucun exercice'}</div>
-  <button class="btn2" data-a="editplan" data-v="${p.id}">${ic('edit',16)} Modifier</button></div>`).join('')}
- <button class="btn2" data-a="addprog">${ic('plus',16)} Ajouter une séance</button></section>
- ${[['','Programmes tout prêts',''],['f','Côté femme : fessiers et cuisses','Priorité au bas du corps (hip thrust, fentes, soulevé de terre roumain, abduction), avec assez de haut du corps pour rester équilibrée. Ils conviennent à tout le monde.']].map(([cat,h,sub])=>`<section class="col"><h2>${h}</h2>${sub?`<p class="sm mut" style="margin:0">${sub}</p>`:''}
- ${Object.entries(TPL).filter(([,t])=>(t.cat||'')===cat).map(([k,t])=>`<div class="card col g6 ${c===k?'hl':''}"><div class="row sb"><b>${t.n}</b><span class="tag grey">${t.lvl}</span></div><span class="sm mut">${t.info}. ${t.progs.map(p=>p.n).join(', ')}.</span>
-  ${c===k?`<span class="sm">Remplacer ton programme par « ${t.n} » ? Ton historique, tes records et tes réglages de machines sont conservés.</span><div class="row"><button class="btn2 grow" data-a="tpl" data-v="">Annuler</button><button class="btn2 grow acb" data-a="usetpl" data-v="${k}">Utiliser</button></div>`
-  :`<button class="btn2" data-a="tpl" data-v="${k}">Choisir ce programme</button>`}</div>`).join('')}</section>`).join('')}`}
 
 /* ================= exercise details sheet (warm-up, drop set, plates, swap, movement) ================= */
 const CHIPS={reps:[5,6,8,10,12,15],s:[20,30,45,60,90,120],m:[20,40,60,100,200,400]};
@@ -172,7 +180,7 @@ const PLATES=[25,20,15,10,5,2.5,1.25];
 function plates(kg){const bar=S.prof.bar||20;if(kg<bar)return {bar,under:1};let side=(kg-bar)/2+1e-6;const out=[];
  for(const p of PLATES)while(side>=p){out.push(p);side-=p}const real=bar+2*out.reduce((a,b)=>a+b,0);return {bar,out,real,exact:Math.abs(real-kg)<.01}}
 /* checks a load and a count; returns null and shows why when out of bounds */
-function checkSet(id,kgRaw,rRaw,errEl,lt=ltOf(id),u=uOf(id)){K=LIM.kg[lt],R=LIM.r[u],kg=kgRaw===''&&lt!=='load'?0:parseNum(kgRaw),r=parseNum(rRaw);
+function checkSet(id,kgRaw,rRaw,errEl,lt=ltOf(id),u=uOf(id)){const K=LIM.kg[lt],R=LIM.r[u],kg=kgRaw===''&&lt!=='load'?0:parseNum(kgRaw),r=parseNum(rRaw);
  const err=m=>{if(errEl){errEl.hidden=false;errEl.textContent=m}else toast(m);return null};
  if(!inR(kg,K))return err(`${LTIN[lt]} : entre ${K[0]} et ${K[1]} kg.`);
  if(!(Number.isInteger(r)&&inR(r,R)))return err(`${UL[u][1]} : nombre entier entre ${R[0]} et ${R[1]}.`);
@@ -185,13 +193,13 @@ function logSet(id,kg,r,f,dr,w){primeAudio();keepAwake();const s=ensureSession()
  if(o.f===undefined)delete o.f;save();view.st=null;
  if(w){render();if(curSheet==='set')setSheet(id);toast('Échauffement noté : '+setTxt(o),['undo','Annuler',o.id]);return}
  const rec=isRec(o),pr=pairOf(id);if(rec)fanfare();
- if(pr&&pr.a.id===id&&curWork(pr.b.id).length<pr.b.s){render();if(rec)return showRec(o,pr.b.id);toast('Superset : enchaîne avec '+esc(exo(pr.b.id).n),['undo','Annuler la série',o.id]);focusRow(pr.b.id);return}
+ if(pr&&pr.a.id===id&&curWork(pr.b.id).length<pr.b.s){focusRow(pr.b.id);if(rec)return showRec(o,pr.b.id);toast('Superset : enchaîne avec '+esc(exo(pr.b.id).n),['undo','Annuler la série',o.id]);return}
  render();startRest(id,o.id);if(rec)showRec(o);
  const gr=goalHit(id,o);if(gr){setTimeout(()=>toast('Objectif atteint : '+fmt(gr.kg)+' kg à '+esc(exo(id).n)),300);return}
  const nb=evalBadges(),nc=chalCheck();if(nb.length)setTimeout(()=>toast('Trophée débloqué : '+esc(nb[0].n)),400);else if(nc)setTimeout(()=>toast('Défi réussi : '+esc(nc.n)),400)}
 const goalHit=(id,o)=>{const g=goalInfo(id);return g&&g.done&&o.kg>=g.kg&&workOf(id).find(l=>l.kg>=g.kg&&l.t>=Date.parse(g.set+'T00:00'))?.id===o.id?g:null};
 /* after a set, the next line to fill gets the focus */
-function focusRow(id){requestAnimationFrame(()=>{const b=document.querySelector(`#app [data-a="tick"][data-v^="${CSS.escape(id)}|"]`)||document.querySelector(`#app .srow.now .tick`);if(b){b.scrollIntoView({block:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});b.focus({preventScroll:true})}})}
+function focusRow(id){view.cur=id;view.draft=null;view.more=null;if(tab==='seance'&&!$('#ov').innerHTML)render();scrollTo(0,0)}
 
 /* ---------- rest: the end time is saved; only the numbers change each tick. While resting you can say how the set felt. ---------- */
 let timer=null;const RESTK='charge-rest';
@@ -216,7 +224,7 @@ function buildRest(){const R=view.rest;if(!R||view.rec)return;keepAwake();const 
  ${restSug(R)?`<div class="card sm" style="max-width:360px;text-align:left">${restSug(R)}</div>`:''}
  <span class="sm" style="max-width:360px">${nextTxt}</span>
  <button class="btn" style="max-width:360px" id="rbtn" data-a="skiprest" data-nx="${!nx?'fin':more?'same':'next'}">Passer le repos</button>
- <button class="btn2" style="max-width:360px;width:100%" data-a="restmin">Voir le carnet (le repos continue)</button>
+ <button class="btn2" style="max-width:360px;width:100%" data-a="restmin">Voir la séance (le repos continue)</button>
  ${l?`<button class="link mutl" data-a="undo" data-v="${R.lid}">${ic('undo',16)} Annuler cette série</button>`:''}
  <p class="xs mut" style="max-width:300px;margin:0">Le bip ne sonne que si l’appli est ouverte à l’écran.</p></div>`,'rest');
  clearInterval(timer);lastLeft=-1;timer=setInterval(tickRest,250);tickRest()}
