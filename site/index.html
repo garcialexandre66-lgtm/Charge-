@@ -846,7 +846,7 @@ async function pushCloud(){if(!dbDoc||BAD)return;if(pushing){pushAgain=true;retu
  finally{pushing=false;banner();if(pushAgain){pushAgain=false;clearTimeout(pushT);pushT=setTimeout(pushCloud,300)}}}
 /* ---------- Google account (standalone site only): the data lives in the user's own Google Drive, in the hidden folder reserved to this app.
    No server: Google Identity Services gives a 1-hour token (scope drive.appdata = only this app's own files), then read → merge → write → check. ---------- */
-const GCLIENT='';/* OAuth client ID (Google Cloud console, type "Web application", authorised origin = the site address) */
+const GCLIENT='867365199367-m30smjr584p94v4qk25p97tmco8sl6st.apps.googleusercontent.com';/* OAuth client ID (Google Cloud console, type "Web application", authorised origin = the site address) */
 const gcid=()=>{try{return GCLIENT||localStorage.getItem('charge-gcid')||''}catch(e){return GCLIENT}};
 let G={tok:'',exp:0,state:'off',err:'',busy:false,again:false,timer:0};/* off | idle | sync | ok | err */
 let GS={};try{GS=JSON.parse(localStorage.getItem('charge-g')||'{}')||{}}catch(e){}
