@@ -1,8 +1,8 @@
 <script>
 /* ================= theme for the exercise drawings ================= */
 function themeFig(){if(typeof COL!=='object')return;const dark=matchMedia('(prefers-color-scheme: dark)').matches;
- Object.assign(COL,dark?{body:'#AEB6C4',near:'#F3F4F6',far:'#4A5262',mus:'#FF6B6B',eq:'#6B7486',eq2:'#9AA3B2',dark:'#3A4354',ac:'#6C93F5',bg:'#1F2533',floor:'#3A4354'}
-  :{body:'#8A94A6',near:'#1F2937',far:'#C3C9D3',mus:'#E5484D',eq:'#9AA3B2',eq2:'#6B7280',dark:'#CBD2DC',ac:'#2F5BEA',bg:'#EEF0F3',floor:'#C9CED6'})}
+ Object.assign(COL,dark?{body:'#9AA5B5',near:'#B4BECC',far:'#5F6A7B',line:'#2A3140',mus:'#FF6B6B',eq:'#6B7486',eq2:'#9AA3B2',dark:'#3A4354',ac:'#6C93F5',bg:'#1F2533',floor:'#283041'}
+  :{body:'#BCC6D3',near:'#D3DAE4',far:'#97A2B2',line:'#5B6576',mus:'#E5484D',eq:'#4B5563',eq2:'#9CA3AF',dark:'#374151',ac:'#2F5BEA',bg:'#EEF0F3',floor:'#DCE1E8'})}
 themeFig();matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{themeFig();render()});
 
 /* ================= navigation: 4 tabs ================= */

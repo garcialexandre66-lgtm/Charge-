@@ -1,3 +1,9 @@
+# Charge 6.1 — nouveaux dessins des exercices
+
+- Les 92 exercices sont redessinés : silhouette en volume (membres galbés, buste dessiné, contours), muscles travaillés en rouge à l’intérieur du corps, matériel détouré, sol et ombre. Version claire et sombre.
+- Nouveau dessin pour le soulevé de terre roumain aux haltères.
+- Aucune photo récupérée sur Internet : les dessins sont générés par l’appli (pas de droits d’auteur, fonctionne hors ligne).
+
 # Charge 6.0 — nouvelle interface
 
 Interface refaite de zéro (le moteur de données, la synchro Google et les calculs sont conservés, tes données aussi).

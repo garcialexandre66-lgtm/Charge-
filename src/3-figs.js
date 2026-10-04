@@ -8,7 +8,7 @@ const FIG={};
 const D2R=Math.PI/180,dv=(a,l)=>[Math.cos(a*D2R)*l,-Math.sin(a*D2R)*l],ad=(o,a,l)=>{const d=dv(a,l);return [o[0]+d[0],o[1]+d[1]]};
 const SEG={to:46,ua:27,fa:25,th:41,sh:40,ft:13};
 const FLOOR=164;
-const COL={body:'#C3C7C5',near:'#DCDFDD',far:'#5D6360',mus:'#FF5A3C',eq:'#5E6461',eq2:'#8C918E',dark:'#3A3F3D',ac:'#3D9BFF',bg:'#141515'};
+const COL={body:'#BCC6D3',near:'#D3DAE4',far:'#97A2B2',line:'#5B6576',mus:'#E5484D',eq:'#4B5563',eq2:'#9CA3AF',dark:'#374151',ac:'#2F5BEA',bg:'#EEF0F3',floor:'#DCE1E8'};
 const lerp=(a,b,t)=>a+(b-a)*t;
 function lerpPose(A,B,t){const o={};for(const k in A)o[k]=typeof A[k]==='number'&&typeof B[k]==='number'?lerp(A[k],B[k],t):A[k];for(const k in B)if(!(k in o))o[k]=B[k];
  /* shortest way round for angles */
@@ -35,9 +35,20 @@ const f1=n=>Math.round(n*10)/10;
 const ln=(a,b,w,c,op='')=>`<line x1="${f1(a[0])}" y1="${f1(a[1])}" x2="${f1(b[0])}" y2="${f1(b[1])}" stroke="${c}" stroke-width="${w}" stroke-linecap="round"${op?` opacity="${op}"`:''}/>`;
 const ci=(c,r,fill,extra='')=>`<circle cx="${f1(c[0])}" cy="${f1(c[1])}" r="${r}" fill="${fill}"${extra}/>`;
 const pt=(a,b,f)=>[lerp(a[0],b[0],f),lerp(a[1],b[1],f)];
+const P2=q=>f1(q[0])+' '+f1(q[1]);
+/* a limb = a capsule that tapers from r1 (at a) to r2 (at b), outlined */
+function limb(a,b,r1,r2,fill,line,op){const L=Math.hypot(b[0]-a[0],b[1]-a[1]);const o=op?` opacity="${op}"`:'',st=line?` stroke="${line}" stroke-width="1.1" stroke-linejoin="round"`:'';
+ if(L<.6)return `<circle cx="${f1(a[0])}" cy="${f1(a[1])}" r="${f1(Math.max(r1,r2))}" fill="${fill}"${st}${o}/>`;
+ const A=Math.atan2(-(b[1]-a[1]),b[0]-a[0])/D2R,n1=dv(A+90,r1),n2=dv(A+90,r2);
+ const a1=[a[0]+n1[0],a[1]+n1[1]],a2=[a[0]-n1[0],a[1]-n1[1]],b1=[b[0]+n2[0],b[1]+n2[1]],b2=[b[0]-n2[0],b[1]-n2[1]];
+ return `<path d="M${P2(a1)} L${P2(b1)} A${f1(r2)} ${f1(r2)} 0 0 1 ${P2(b2)} L${P2(a2)} A${f1(r1)} ${f1(r1)} 0 0 1 ${P2(a1)} Z" fill="${fill}"${st}${o}/>`}
+/* smooth closed shape through points (quadratic curves through the midpoints) */
+function blob(pts,fill,line){const n=pts.length,m=i=>pt(pts[i%n],pts[(i+1)%n],.5);let d='M'+P2(m(n-1));for(let i=0;i<n;i++)d+=' Q'+P2(pts[i])+' '+P2(m(i));
+ return `<path d="${d} Z" fill="${fill}"${line?` stroke="${line}" stroke-width="1.1" stroke-linejoin="round"`:''}/>`}
+const off=(a,b,f,ang0,d)=>{const q=pt(a,b,f),n=dv(ang0,d);return [q[0]+n[0],q[1]+n[1]]};
 const ang=(a,b)=>Math.atan2(-(b[1]-a[1]),b[0]-a[0])/D2R;
 /* a muscle = an offset stroke along part of a segment; side +1/-1 picks the face */
-function musSeg(a,b,f0,f1_,side,off,w){const A=ang(a,b),n=dv(A+90*side,off),p0=pt(a,b,f0),p1=pt(a,b,f1_);return ln([p0[0]+n[0],p0[1]+n[1]],[p1[0]+n[0],p1[1]+n[1]],w,COL.mus,.92)}
+function musSeg(a,b,f0,f1_,side,o,w){const A=ang(a,b),n=dv(A+90*side,o*.38),p0=pt(a,b,f0),p1=pt(a,b,f1_);return limb([p0[0]+n[0],p0[1]+n[1]],[p1[0]+n[0],p1[1]+n[1]],w*.42,w*.32,COL.mus,'',.9)}
 function musclesSide(J,m,far){const o=[];const s=far?'':'';
  const T=(f0,f1,side,off,w)=>musSeg(J.P,J.S,f0,f1,side,off,w);
  for(const k of m){
@@ -47,11 +58,11 @@ function musclesSide(J,m,far){const o=[];const s=far?'':'';
   if(k==='dorsaux')o.push(T(.4,.82,1,6,9));
   if(k==='lombaires')o.push(T(.04,.38,1,6,8));
   if(k==='trapèzes'){o.push(T(.86,1,1,5,8));o.push(ln(J.S,pt(J.S,J.H,.45),6,COL.mus,.92))}
-  if(k==='épaules')o.push(ci(J.S,7.5,COL.mus,' opacity=".92"'));
+  if(k==='épaules')o.push(ci(J.S,5.6,COL.mus,' opacity=".9"'));
   if(k==='biceps')o.push(musSeg(J.S,J.E,.18,.85,1,2,6));
   if(k==='triceps')o.push(musSeg(J.S,J.E,.15,.85,-1,2,6));
   if(k==='avant-bras')o.push(musSeg(J.E,J.W,.1,.75,1,0,6));
-  if(k==='fessiers')o.push(ci(ad(J.P,J.ta-90+180,0).map((v,i)=>v+dv(J.ta-90,-7)[i]),8,COL.mus,' opacity=".92"'));
+  if(k==='fessiers')o.push(ci(ad(J.P,J.ta-90+180,0).map((v,i)=>v+dv(J.ta-90,-4.5)[i]),6.2,COL.mus,' opacity=".9"'));
   if(k==='quadriceps')o.push(musSeg(J.P,J.K,.15,.9,1,3,8));
   if(k==='ischios')o.push(musSeg(J.P,J.K,.2,.9,-1,3,7));
   if(k==='adducteurs')o.push(musSeg(J.P,J.K,.1,.7,1,0,6));
@@ -76,36 +87,41 @@ function musclesFront(J,m){const o=[],S=J.S,P=J.P;
   if(k==='ischios'){o.push(musSeg(J.HR,J.KR,.2,.85,1,2,4));o.push(musSeg(J.HL,J.KL,.2,.85,-1,2,4))}
   if(k==='mollets'){o.push(musSeg(J.KR,J.AR,.1,.55,1,2,5));o.push(musSeg(J.KL,J.AL,.1,.55,-1,2,5))}}
  return o.join('')}
-function bodySide(J,m,ghost){const c=ghost?{far:COL.far,body:COL.far,near:COL.far}:COL,o=[];
- o.push(ln(J.S,J.E2,7.5,c.far),ln(J.E2,J.W2,6.5,c.far),ci(J.Hd2,3.6,c.far));
- o.push(ln(J.P,J.K2,11,c.far),ln(J.K2,J.A2,8.5,c.far),ln(J.A2,J.T2,4.5,c.far));
- o.push(ln(J.P,J.S,19,c.body),ci(J.P,9.5,c.body),ln(J.S,pt(J.S,J.H,.5),7,c.body),ci(J.H,8.5,c.body));
- o.push(ln(J.P,J.K,12,c.near),ln(J.K,J.A,9,c.near),ln(J.A,J.T,5,c.near));
- if(!ghost)o.push(musclesSide(J,m));
- o.push(ln(J.S,J.E,8,c.near),ln(J.E,J.W,7,c.near),ci(J.Hd,3.8,c.near));
+/* side view: far limbs darker behind, torso shaped (chest in front, back curve), near limbs lighter in front */
+function torsoSide(J,fill,line){const P=J.P,S=J.S,u=ang(P,S),fr=u-90,bk=u+90;
+ return blob([off(P,S,0,bk,9),off(P,S,-.08,u-180,2),off(P,S,0,fr,8.5),off(P,S,.38,fr,7.4),off(P,S,.76,fr,10.6),off(P,S,1,fr,6.8),off(S,S,0,u,4.5),off(P,S,1,bk,6.4),off(P,S,.7,bk,9.4),off(P,S,.28,bk,7.6)],fill,line)}
+function headSide(J,fill,line){const u=ang(J.S,J.H);return limb(J.S,pt(J.S,J.H,.55),3.8,3.4,fill,line)+`<ellipse cx="${f1(J.H[0])}" cy="${f1(J.H[1])}" rx="8.2" ry="9" transform="rotate(${f1(90-u)} ${f1(J.H[0])} ${f1(J.H[1])})" fill="${fill}"${line?` stroke="${line}" stroke-width="1.1"`:''}/>`}
+function bodySide(J,m,ghost){const L=ghost?'':COL.line,c=ghost?{far:COL.far,body:COL.far,near:COL.far}:COL,o=[];
+ o.push(limb(J.S,J.E2,4.6,3.7,c.far,L),limb(J.E2,J.W2,3.7,2.8,c.far,L),limb(J.W2,J.Hd2,2.8,3.2,c.far,L));
+ o.push(limb(J.P,J.K2,7.2,4.8,c.far,L),limb(J.K2,J.A2,4.8,3.1,c.far,L),limb(J.A2,J.T2,3.3,2.3,c.far,L));
+ o.push(torsoSide(J,c.body,L),headSide(J,c.body,L));
+ o.push(limb(J.P,J.K,7.6,5,c.near,L),limb(J.K,J.A,5,3.3,c.near,L),limb(J.A,J.T,3.5,2.4,c.near,L));
+ if(!ghost)o.push(musclesSide(J,m.filter(k=>!['biceps','triceps','avant-bras','épaules'].includes(k))));
+ o.push(limb(J.S,J.E,4.9,3.9,c.near,L),limb(J.E,J.W,3.9,3,c.near,L),limb(J.W,J.Hd,3,3.4,c.near,L));
  if(!ghost&&m.some(k=>['biceps','triceps','avant-bras','épaules'].includes(k)))o.push(musclesSide(J,m.filter(k=>['biceps','triceps','avant-bras','épaules'].includes(k))));
  return o.join('')}
-function bodyFront(J,m,ghost){const c=ghost?COL.far:COL.body,cn=ghost?COL.far:COL.near,o=[],S=J.S,P=J.P;
- o.push(`<polygon points="${f1(J.SL[0]-2)},${f1(J.SL[1]-3)} ${f1(J.SR[0]+2)},${f1(J.SR[1]-3)} ${f1(P[0]+12)},${f1(P[1]+3)} ${f1(P[0]-12)},${f1(P[1]+3)}" fill="${c}" stroke="${c}" stroke-width="6" stroke-linejoin="round"/>`);
- o.push(ln(J.HR,J.KR,11,cn),ln(J.KR,J.AR,8.5,cn),ln(J.HL,J.KL,11,cn),ln(J.KL,J.AL,8.5,cn));
- o.push(ln(J.AR,[J.AR[0]+7,J.AR[1]+1],5,cn),ln(J.AL,[J.AL[0]-7,J.AL[1]+1],5,cn));
- o.push(ln(S,pt(S,J.H,.5),7,c),ci(J.H,8.5,c));
- o.push(ln(J.SR,J.ER,7.5,cn),ln(J.ER,J.WR,6.5,cn),ci(J.HdR,3.6,cn));
- o.push(ln(J.SL,J.EL,7.5,cn),ln(J.EL,J.WL,6.5,cn),ci(J.HdL,3.6,cn));
+/* front view: V-shaped torso, both arms and legs */
+function bodyFront(J,m,ghost){const L=ghost?'':COL.line,c=ghost?COL.far:COL.body,cn=ghost?COL.far:COL.near,o=[],S=J.S,P=J.P,tor=(f,dx)=>{const q=pt(P,S,f);return [q[0]+dx,q[1]]};
+ o.push(limb(J.HR,J.KR,7.4,5,cn,L),limb(J.KR,J.AR,5,3.3,cn,L),limb(J.HL,J.KL,7.4,5,cn,L),limb(J.KL,J.AL,5,3.3,cn,L));
+ o.push(limb(J.AR,[J.AR[0]+6,J.AR[1]+1.5],3.2,2.4,cn,L),limb(J.AL,[J.AL[0]-6,J.AL[1]+1.5],3.2,2.4,cn,L));
+ o.push(blob([[J.SL[0]-3,J.SL[1]-2],[S[0],S[1]-4],[J.SR[0]+3,J.SR[1]-2],[J.SR[0]+2,J.SR[1]+6],tor(.62,13),tor(.3,10.5),tor(0,13),tor(-.06,0),tor(0,-13),tor(.3,-10.5),tor(.62,-13),[J.SL[0]-2,J.SL[1]+6]],c,L));
+ o.push(limb(S,pt(S,J.H,.5),3.8,3.4,c,L),`<ellipse cx="${f1(J.H[0])}" cy="${f1(J.H[1])}" rx="7.6" ry="9" fill="${c}"${L?` stroke="${L}" stroke-width="1.1"`:''}/>`);
+ o.push(limb(J.SR,J.ER,4.6,3.7,cn,L),limb(J.ER,J.WR,3.7,2.8,cn,L),limb(J.WR,J.HdR,2.8,3.2,cn,L));
+ o.push(limb(J.SL,J.EL,4.6,3.7,cn,L),limb(J.EL,J.WL,3.7,2.8,cn,L),limb(J.WL,J.HdL,2.8,3.2,cn,L));
  if(!ghost)o.push(musclesFront(J,m));
  return o.join('')}
 /* ---------- equipment ---------- */
 function jp(J,at){if(Array.isArray(at))return at;return J[at]}
 function eqDraw(e,J,view){const o=[];
  switch(e.k){
-  case 'bench':{const a=e.a,b=e.b;o.push(ln(a,b,7,COL.eq));(e.legs??[a,b]).forEach(q=>o.push(ln([q[0],q[1]+3],[q[0],FLOOR],3.5,COL.dark)));break}
+  case 'bench':{const a=e.a,b=e.b;(e.legs??[a,b]).forEach(q=>o.push(ln([q[0],q[1]+3],[q[0],FLOOR],3.5,COL.dark)));o.push(limb(a,b,4.2,4.2,COL.eq,COL.dark),ln(pt(a,b,.04),pt(b,a,.04),1.2,COL.eq2,.6));break}
   case 'pad':{const q=e.on?pt(J[e.on[0]],J[e.on[1]],e.f??.85):jp(J,e.at);o.push(ci(q,e.r||6,COL.eq2,` stroke="${COL.dark}" stroke-width="2"`));if(e.arm)o.push(ln(e.arm,q,4,COL.eq),ci(e.arm,4,COL.dark));break}
   case 'line':o.push(ln(e.a,e.b,e.w||4,e.c||COL.dark));break;
   case 'rect':o.push(`<rect x="${e.x}" y="${e.y}" width="${e.w}" height="${e.h}" rx="${e.r||3}" fill="${e.c||COL.dark}"/>`);break;
   case 'bar':{if(view==='front'){const a=J.HdL,b=J.HdR,dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L,ext=e.ext??36;
     const A=[a[0]-ux*ext,a[1]-uy*ext],B=[b[0]+ux*ext,b[1]+uy*ext];o.push(ln(A,B,2.6,COL.eq2));
     if(!e.empty)[[A,-1],[B,1]].forEach(([q,s])=>{const c1=[q[0]-ux*s*7,q[1]-uy*s*7];o.push(ln(c1,[c1[0]+ux*s*4,c1[1]+uy*s*4],17,COL.eq),ln([c1[0]-ux*s*3,c1[1]-uy*s*3],[c1[0]-ux*s*1,c1[1]-uy*s*1],12,COL.eq))})}
-   else{const q=jp(J,e.at||'Hd');if(!e.empty)o.push(ci(q,e.r||13,COL.eq,` stroke="${COL.dark}" stroke-width="2"`));o.push(ci(q,2.6,COL.eq2))}break}
+   else{const q=jp(J,e.at||'Hd');if(!e.empty)o.push(ci(q,e.r||13,COL.eq,` stroke="${COL.dark}" stroke-width="2"`),ci(q,(e.r||13)*.62,'none',` stroke="${COL.eq2}" stroke-width="1.2" opacity=".6"`));o.push(ci(q,2.6,COL.eq2))}break}
   case 'db':{if(view==='front'){[['WR','ER','HdR'],['WL','EL','HdL']].forEach(([w,el,hd])=>{const q=J[hd],a=ang(J[el],J[w])+(e.rot??90);const p1=ad(q,a,7),p2=ad(q,a,-7);o.push(ln(p1,p2,2.5,COL.eq2),ln(ad(p1,a,1.5),ad(p1,a,3),9,COL.eq),ln(ad(p2,a,-1.5),ad(p2,a,-3),9,COL.eq))})}
    else{const q=jp(J,e.at||'Hd'),a=(e.rot!==undefined?e.rot:ang(J.E,J.W)+(e.rr??90));const p1=ad(q,a,6),p2=ad(q,a,-6);o.push(ln(p1,p2,2.5,COL.eq2),ln(p1,ad(p1,a,2),9,COL.eq),ln(p2,ad(p2,a,-2),9,COL.eq))}break}
   case 'kb':{const q=jp(J,e.at||'Hd');o.push(ci([q[0],q[1]+8],7,COL.eq),`<path d="M${f1(q[0]-4)} ${f1(q[1]+3)} Q${f1(q[0])} ${f1(q[1]-5)} ${f1(q[0]+4)} ${f1(q[1]+3)}" stroke="${COL.eq}" stroke-width="2.5" fill="none"/>`);break}
@@ -128,11 +144,12 @@ function figFrame(f,p,ghost){const v=f.v||'side',J=joints(p,v),m=ghost?[]:(f.m||
  const back=(f.eq||[]).filter(e=>!e.front).map(e=>eqDraw(e,J,v)).join(''),front=(f.eq||[]).filter(e=>e.front).map(e=>eqDraw(e,J,v)).join('');
  const touch=ghost?'':(f.touch||[]).map(k=>{const q=J[k==='W'?'Hd':k==='W2'?'Hd2':k];if(v==='front'&&k==='W'&&!f.one)return ci(J.HdR,6.5,'none',` stroke="${COL.ac}" stroke-width="2"`)+ci(J.HdL,6.5,'none',` stroke="${COL.ac}" stroke-width="2"`);if(v==='front'&&k==='A'&&!f.one)return ci(J.AR,6.5,'none',` stroke="${COL.ac}" stroke-width="2"`)+ci(J.AL,6.5,'none',` stroke="${COL.ac}" stroke-width="2"`);return q?ci(q,6.5,'none',` stroke="${COL.ac}" stroke-width="2"`):''}).join('');
  return back+(v==='front'?bodyFront(J,m,ghost):bodySide(J,m,ghost))+front+touch}
+function shadowX(f,p){const J=joints(p,f.v||'side');return f.v==='front'?J.P[0]:(J.P[0]+J.A[0])/2}
 function figSvg(id,opts={}){const f=FIG[id];if(!f)return '';const t=opts.t??1;
  const pose=lerpPose(f.a,f.b,t),vb=f.vb||'0 0 200 170';
  const ghost=opts.ghost?`<g opacity=".28">${figFrame(f,f.a,true)}</g>`:'';
  return `<svg viewBox="${vb}" ${opts.size?`width="${opts.size}" height="${Math.round(opts.size*.85)}"`:'width="100%"'} role="img" aria-label="${esc(opts.label||'Illustration du mouvement')}" style="display:block">
- <rect x="-50" y="-50" width="300" height="270" fill="${COL.bg}"/>${f.floor===false?'':`<line x1="-50" y1="${FLOOR+1.5}" x2="250" y2="${FLOOR+1.5}" stroke="#2A2D2D" stroke-width="3"/>`}
+ <rect x="-50" y="-50" width="300" height="270" fill="${COL.bg}"/>${f.floor===false?'':`<rect x="-50" y="${FLOOR+1}" width="300" height="60" fill="${COL.floor}"/><ellipse cx="${f1(shadowX(f,pose))}" cy="${FLOOR+2}" rx="46" ry="4" fill="#000" opacity=".10"/>`}
  ${ghost}${figFrame(f,pose,false)}${opts.arrow===false?'':arrowSvg(f)}</svg>`}
 /* exercises without their own drawing (created by the user) borrow one of the same main muscle */
 const FIGBY={pectoraux:'chestpress',dorsaux:'tirage',épaules:'epaules',biceps:'curlh',triceps:'triceps',quadriceps:'presse',ischios:'legcurl',fessiers:'hipthrust',adducteurs:'adduction',mollets:'mollets',abdos:'crunch',obliques:'woodchop',lombaires:'lombaires',trapèzes:'shrug','avant-bras':'curlpoignet'};
@@ -302,6 +319,7 @@ D('legcurl',{m:['ischios'],a:sit({t:100,A:[160,112],ls:1,W:[86,122],ws:1}),b:sit
 const PR={x:98,y:110,t:0,W:[166,128],ws:1};
 D('legcurlallonge',{m:['ischios'],a:po({...PR,th:178,sh:178}),b:po({...PR,th:178,sh:70}),eq:[seat(40,160,121),{k:'pad',on:['K','A'],f:.9,r:6,front:1}],touch:['A','W'],mv:'A',as:1});
 D('sdtr',{m:['ischios','fessiers','lombaires'],a:stand({W:[100,90],ws:1}),b:po({x:80,y:86,t:24,A:[100,163],A2:[96,163],ls:1,W:[120,132],ws:1}),eq:[{k:'bar',front:1}],touch:['W','A'],mv:'P',as:-1,ao:20});
+D('sdtrdb',{m:['ischios','fessiers','lombaires'],a:stand({W:[100,90],ws:1}),b:po({x:80,y:86,t:24,A:[100,163],A2:[96,163],ls:1,W:[120,132],ws:1}),eq:[{k:'db',rot:0,front:1}],touch:['W','A'],mv:'P',as:-1,ao:20});
 D('nordic',{m:['ischios'],a:po({x:100,y:118,t:90,th:-90,sh:180,ft:-90,ua:-60,fa:30}),b:po({x:133.6,y:135.5,t:35,th:-145,sh:180,ft:-90,ua:-30,fa:-60}),
  eq:[{k:'rect',x:84,y:156,w:30,h:8,r:3,c:'#5E6461'},{k:'pad',at:'A',r:5,front:1}],touch:['A'],mv:'S',as:1});
 D('hipthrust',{m:['fessiers','ischios'],a:po({x:92,y:140,t:129.5,A:[140,163],ls:1,W:[92,128],ws:1}),b:po({x:110,y:104,t:182.5,A:[140,163],ls:1,W:[110,92],ws:1}),
