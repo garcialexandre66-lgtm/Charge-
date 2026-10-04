@@ -298,7 +298,7 @@ hr{border:0;border-top:1px solid var(--rule);margin:0;width:100%}
 <script>
 "use strict";
 /* ================= data ================= */
-const APPV='5.0';
+const APPV='5.1';
 const $=s=>document.querySelector(s);
 /* rough recovery window in hours per muscle: an app heuristic (large ≈72 h, medium ≈48 h, small ≈36 h), not a measurement */
 const MUS={quadriceps:72,ischios:72,fessiers:72,dorsaux:72,pectoraux:72,lombaires:72,épaules:48,trapèzes:48,biceps:48,triceps:48,adducteurs:48,mollets:36,abdos:36,obliques:36,'avant-bras':36};
@@ -425,6 +425,22 @@ const TPL={
   {n:'Push',items:[it('couche',4,6,8,150),it('incline',3,8,12),it('epaules',3,8,12),it('elev',3,12,20),it('triceps',3,10,15)]},
   {n:'Pull',items:[it('tirage',4,8,12),it('rowing',3,8,12),it('pullover',3,10,15),it('oiseau',3,12,20),it('curl',3,10,15)]},
   {n:'Legs',items:[it('presse',4,8,12,120),it('sdtr',3,8,12,120),it('legext',3,10,15),it('legcurl',3,10,15),it('mollets',4,12,20)]}]},
+ /* glute & leg focused programmes (cat:'f'), shown in their own section */
+ gf:{cat:'f',n:'Fessiers débutante',lvl:'Débutant',sess:3,info:'3 séances par semaine, 50 min, tout le corps avec priorité fessiers',progs:[
+  {n:'Fessiers A',items:[it('hipthrust',3,8,12,120),it('goblet',3,10,15),it('legcurl',3,10,15),it('abduction',3,15,20),it('tirage',3,8,12),it('crunch',3,12,20)]},
+  {n:'Fessiers B',items:[it('presse',3,10,15,120),it('sdtr',3,8,12,120),it('fentes',3,10,12),it('kickpoulie',3,12,15),it('chestpress',3,8,12),it('elev',3,12,20)]}]},
+ gl:{cat:'f',n:'Fessiers & cuisses',lvl:'Intermédiaire',sess:4,info:'4 séances par semaine, 60 min, 2 jours bas du corps',progs:[
+  {n:'Fessiers',items:[it('hipthrust',4,6,10,150),it('bulgare',3,8,12,90),it('sdtr',3,8,12,120),it('kickpoulie',3,12,15),it('abduction',3,15,25)]},
+  {n:'Haut A',items:[it('tirage',3,8,12),it('chestpress',3,8,12),it('rowing',3,8,12),it('elev',3,12,20),it('triceps',3,10,15),it('crunch',3,12,20)]},
+  {n:'Cuisses',items:[it('squat',4,6,10,150),it('presse',3,10,15,120),it('legcurlallonge',3,10,15),it('legext',3,12,15),it('adduction',3,12,20),it('mollets',3,12,20)]},
+  {n:'Haut B',items:[it('epaules',3,8,12),it('rowpoulie',3,8,12),it('incline',3,8,12),it('facepull',3,12,20),it('curlh',3,10,15),it('gainage',3,30,60)]}]},
+ gb:{cat:'f',n:'Bas du corps 3 jours',lvl:'Intermédiaire',sess:3,info:'3 séances par semaine, fessiers, quadriceps, ischios',progs:[
+  {n:'Fessiers lourds',items:[it('hipthrust',4,6,8,150),it('smithsquat',3,8,10,120),it('legcurl',3,10,15),it('abduction',3,15,25),it('crunch',3,12,20)]},
+  {n:'Quadriceps',items:[it('hack',4,8,12,120),it('fentesmarche',3,10,12),it('legext',3,12,15),it('adduction',3,12,20),it('molletspresse',3,12,20)]},
+  {n:'Ischios & fessiers',items:[it('sdtr',4,8,10,150),it('stepup',3,10,12),it('legcurlallonge',3,10,15),it('kickpoulie',3,12,15),it('pont',3,15,20)]}]},
+ gh:{cat:'f',n:'Fessiers à la maison',lvl:'Débutant',sess:3,info:'3 séances par semaine, une paire d’haltères suffit',progs:[
+  {n:'Maison A',items:[it('goblet',3,12,15),it('pont',3,15,20),it('fentes',3,10,12),it('pompes',3,6,12),it('rowdb',3,10,12),it('gainage',3,30,60)]},
+  {n:'Maison B',items:[it('bulgare',3,10,12),it('stepup',3,10,12),it('nordic',3,3,6),it('epaulesdb',3,10,12),it('curlh',3,10,15),it('russian',3,15,20)]}]},
  f5:{n:'Force 5 × 5',lvl:'Avancé',sess:3,info:'3 séances par semaine, charges lourdes',progs:[
   {n:'Force A',items:[it('squat',5,5,5,180),it('couche',5,5,5,180),it('rowbarre',5,5,5,150)]},
   {n:'Force B',items:[it('squat',5,5,5,180),it('epaules',5,5,5,150),it('souleve',1,5,5,180)]}]}
@@ -671,7 +687,7 @@ function persistLocal(){if(BAD)return false;
    IDB.put('rescue',{k:'cur',at:Date.now(),json:JSON.stringify(S)}).then(()=>{rescue={state:'ok',at:Date.now()};banner()}).catch(()=>{rescue={state:'fail',at:Date.now()};banner()})}
   else IDB.put('rescue',{k:'cur',at:Date.now(),json:JSON.stringify(S)}).then(()=>{rescue={state:'ok',at:Date.now()};banner()}).catch(()=>{rescue={state:'fail',at:Date.now()};banner()});
   return false}}
-function save(){REV++;const ok=persistLocal();banner();if(dbDoc){clearTimeout(pushT);pushT=setTimeout(pushCloud,800)}return ok}
+function save(){REV++;const ok=persistLocal();banner();if(dbDoc){clearTimeout(pushT);pushT=setTimeout(pushCloud,800)}if(typeof gLive==='function'&&gOn()&&gLive()){clearTimeout(G.timer);G.timer=setTimeout(gSync,1500)}return ok}
 function banner(){const b=$('#savebar');if(!b)return;let msg='';
  if(localErr){msg=`Cet appareil refuse l’enregistrement (${localErr}). `+({pending:'Copie de secours en cours d’écriture…',ok:`Copie de secours enregistrée à ${hm(rescue.at)}, elle sera reprise au prochain lancement.`,fail:'La copie de secours a aussi échoué : tes dernières saisies ne sont qu’en mémoire. Exporte maintenant.',none:''}[rescue.state]||'')+(dbDoc&&sync==='cloud'?' Ton compte Claude, lui, est à jour.':'')}
  else if(dbDoc&&sync==='erreur')msg='Envoi vers ton compte Claude échoué. Tout est enregistré sur cet appareil ; nouvel essai automatique.';
@@ -782,7 +798,9 @@ function prepareImport(raw){if(!raw||typeof raw!=='object'||Array.isArray(raw))t
    A deletion wins over every version it has seen. Open sessions are never closed by a merge. */
 const COLL={logs:l=>l.id,sess:s=>s.id,food:f=>f.id,bw:b=>b.d,meas:m=>m.d,myfoods:f=>f.code?'c'+f.code:'n'+f.n,tmeals:t=>t.id,progs:p=>p.id,ex:e=>e.id};
 const MAPS=['water','goalsEx','badges'],META=['prof','pn','cur','fav'];
-const newer=(x,o)=>{const a=x?.ver||0,b=o?.ver||0;if(a!==b)return a>b;const c=x?.u||0,d=o?.u||0;if(c!==d)return c>d;return JSON.stringify(x)>JSON.stringify(o)};
+/* JSON with sorted keys: two copies that hold the same data compare equal whatever the order their fields were written in */
+const canon=o=>JSON.stringify(o,(k,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.keys(v).sort().reduce((r,x)=>(r[x]=v[x],r),{}):v);
+const newer=(x,o)=>{const a=x?.ver||0,b=o?.ver||0;if(a!==b)return a>b;const c=x?.u||0,d=o?.u||0;if(c!==d)return c>d;return canon(x)>canon(o)};
 const gone=(d,x)=>!!d&&(typeof d==='number'?d>=(x?.u||0):(d.v||0)>=(x?.ver||0));
 const tombMax=(a,b)=>{if(!a)return b;if(!b)return a;if(typeof a==='object'&&typeof b==='object')return (b.v||0)>(a.v||0)?b:a;if(typeof a==='object')return a;if(typeof b==='object')return b;return Math.max(a,b)};
 function merge(A,B){const O=structuredClone(A),del={...(A.del||{})};Object.entries(B.del||{}).forEach(([k,d])=>{del[k]=tombMax(del[k],d)});
@@ -791,10 +809,10 @@ function merge(A,B){const O=structuredClone(A),del={...(A.del||{})};Object.entri
  for(const m of MAPS){const R={};for(const src of [B[m]||{},A[m]||{}])Object.entries(src).forEach(([k,x])=>{if(!R[k]||newer(x,R[k]))R[k]=x});
   Object.keys(R).forEach(k=>{if(gone(del[m+':'+k],R[k]))delete R[k]});O[m]=structuredClone(R)}
  O.wkGoal={...(B.wkGoal||{}),...(A.wkGoal||{})};
- O.mt={...(A.mt||{})};for(const f of META){const a=A.mt?.[f]||0,b=B.mt?.[f]||0;if(b>a||(b===a&&b&&JSON.stringify(B[f])>JSON.stringify(A[f]))){O[f]=structuredClone(B[f]);O.mt[f]=b}}
+ O.mt={...(A.mt||{})};for(const f of META){const a=A.mt?.[f]||0,b=B.mt?.[f]||0;if(b>a||(b===a&&b&&canon(B[f])>canon(A[f]))){O[f]=structuredClone(B[f]);O.mt[f]=b}}
  const ids=new Set(O.sess.map(s=>s.id));O.logs=O.logs.filter(l=>ids.has(l.sid)).sort((a,b)=>a.t-b.t);
  O.del=del;O.v=5;return O}
-const sameData=(A,B)=>JSON.stringify(A)===JSON.stringify(B);
+const sameData=(A,B)=>canon(A)===canon(B);
 const missingFrom=(R,L)=>Object.entries(COLL).some(([c,f])=>{const K=new Set((R[c]||[]).map(f));return (L[c]||[]).some(x=>!K.has(f(x)))});
 
 /* ---------- start: read, migrate after a confirmed backup, or stop on unreadable data ---------- */
@@ -826,6 +844,49 @@ async function pushCloud(){if(!dbDoc||BAD)return;if(pushing){pushAgain=true;retu
   sync='cloud';pushTry=0}
  catch(e){sync='erreur';pushTry++;clearTimeout(pushT);pushT=setTimeout(pushCloud,[3,10,30,60,120][Math.min(4,pushTry-1)]*1000)}
  finally{pushing=false;banner();if(pushAgain){pushAgain=false;clearTimeout(pushT);pushT=setTimeout(pushCloud,300)}}}
+/* ---------- Google account (standalone site only): the data lives in the user's own Google Drive, in the hidden folder reserved to this app.
+   No server: Google Identity Services gives a 1-hour token (scope drive.appdata = only this app's own files), then read → merge → write → check. ---------- */
+const GCLIENT='';/* OAuth client ID (Google Cloud console, type "Web application", authorised origin = the site address) */
+const gcid=()=>{try{return GCLIENT||localStorage.getItem('charge-gcid')||''}catch(e){return GCLIENT}};
+let G={tok:'',exp:0,state:'off',err:'',busy:false,again:false,timer:0};/* off | idle | sync | ok | err */
+let GS={};try{GS=JSON.parse(localStorage.getItem('charge-g')||'{}')||{}}catch(e){}
+const gSaveMeta=()=>{try{localStorage.setItem('charge-g',JSON.stringify(GS))}catch(e){}};
+const gOn=()=>!!GS.on&&!window.claude;
+const gLive=()=>G.tok&&Date.now()<G.exp-60000;
+const gPending=()=>gOn()&&(GS.last||0)<lastSaved;
+let gisP=null;
+function loadGIS(){if(window.google?.accounts?.oauth2)return Promise.resolve();if(gisP)return gisP;
+ gisP=new Promise((ok,ko)=>{const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.async=true;s.onload=()=>ok();s.onerror=()=>{gisP=null;s.remove();ko(new Error('gis'))};document.head.appendChild(s)});return gisP}
+/* must be called from a tap (the browser only allows Google's window after a user gesture) */
+async function gConnect(){const id=gcid();if(!id){G.state='err';G.err='Connexion Google pas encore configurée.';return softRender()}
+ G.state='sync';G.err='';softRender();
+ try{await loadGIS()}catch(e){G.state='err';G.err='Impossible de joindre Google (réseau ?).';return softRender()}
+ const tc=google.accounts.oauth2.initTokenClient({client_id:id,scope:'https://www.googleapis.com/auth/drive.appdata openid email',
+  ...(GS.email?{login_hint:GS.email}:{}),
+  callback:async r=>{if(r.error){G.state='err';G.err=r.error==='access_denied'?'Accès refusé.':'Connexion Google échouée.';return softRender()}
+   G.tok=r.access_token;G.exp=Date.now()+(r.expires_in||3600)*1000;
+   if(!GS.email){try{const u=await (await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+G.tok}})).json();GS.email=u.email||''}catch(e){}}
+   GS.on=1;gSaveMeta();gSync()},
+  error_callback:e=>{G.state=G.tok?'idle':'err';G.err=e?.type==='popup_closed'?'Fenêtre Google fermée.':e?.type==='popup_failed_to_open'?'Fenêtre Google bloquée par le navigateur.':'Connexion Google échouée.';softRender()}});
+ tc.requestAccessToken({prompt:GS.on?'':'consent'})}
+async function gApi(url,opt={}){const r=await fetch(url,{...opt,headers:{...(opt.headers||{}),Authorization:'Bearer '+G.tok}});
+ if(r.status===401){G.tok='';G.exp=0;throw new Error('auth')}if(!r.ok)throw new Error('http '+r.status);return r}
+async function gFind(){const q=encodeURIComponent("name='charge.json' and trashed=false");
+ const j=await (await gApi(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,modifiedTime)&orderBy=modifiedTime desc`)).json();return j.files?.[0]?.id||null}
+async function gRead(id){return await (await gApi(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`,{cache:'no-store'})).text()}
+async function gWrite(id,json){if(id){await gApi(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:json});return id}
+ const b='charge'+uid(),body=`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({name:'charge.json',parents:['appDataFolder']})}\r\n--${b}\r\nContent-Type: application/json\r\n\r\n${json}\r\n--${b}--`;
+ const j=await (await gApi('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+b},body})).json();return j.id}
+async function gSync(){if(!gOn()||BAD)return;if(!gLive()){G.state='idle';return softRender()}if(G.busy){G.again=true;return}G.busy=true;G.state='sync';softRender();
+ try{let id=await gFind();{const N=merge(S,S);if(!sameData(N,S)){S=N;REV++}}/* same shape as a merged copy, so the check below does not cause a second upload */
+  for(let round=0;round<3;round++){let R=null;if(id){const j=await gRead(id);try{R=fromJSON(j)}catch(e){await backup('Copie Google Drive illisible',j)}}
+   if(R){const M=merge(S,R);if(!sameData(M,S)){S=M;REV++;persistLocal();softRender()}if(sameData(S,R))break}
+   id=await gWrite(id,JSON.stringify(S));
+   const C=fromJSON(await gRead(id));if(!missingFrom(C,S)&&sameData(merge(S,C),S))break;S=merge(S,C);REV++;persistLocal()}
+  GS.last=Date.now();gSaveMeta();G.state='ok';G.err=''}
+ catch(e){G.state=e.message==='auth'?'idle':'err';G.err=e.message==='auth'?'':'Synchronisation Google échouée, nouvel essai à la prochaine modification.'}
+ finally{G.busy=false;banner();softRender();if(G.again){G.again=false;setTimeout(gSync,300)}}}
+function gOff(){try{if(G.tok&&window.google?.accounts?.oauth2)google.accounts.oauth2.revoke(G.tok,()=>{})}catch(e){}G={tok:'',exp:0,state:'off',err:'',busy:false,again:false,timer:0};GS={};gSaveMeta()}
 let dl=null,sample=null,sampleImg=false;
 async function initCaps(){if(!window.claude)return;
  try{dl=await claude.use('downloads')}catch(e){dl=null}
@@ -1401,7 +1462,7 @@ function Home(){if(view.page==='progs')return Programs();
  const estMin=Math.round(P.reduce((s,p)=>s+p.s*((p.rest||S.prof.rest)+45),0)/60/5)*5;
  const F=fatigue(0),hot=[...new Set(P.flatMap(p=>exo(p.id).m.slice(0,1)))].filter(m=>(F[m]?.f||0)>.5);
  const CH=challenges(),nt=nutDay(today()),g=goals(),st=streak(),sug=suggested();
- const expDays=S.prof.lastExp?daysAgo(S.prof.lastExp):null,needExp=!dbDoc&&doneSess().length>=3&&(expDays==null||expDays>14);
+ const expDays=S.prof.lastExp?daysAgo(S.prof.lastExp):null,needExp=!dbDoc&&!(gOn()&&GS.last&&Date.now()-GS.last<14*864e5)&&doneSess().length>=3&&(expDays==null||expDays>14);
  return `<header class="page-head"><span class="date">${cap(dLong(today()))}${S.prof.name?', '+esc(S.prof.name):''}</span>
  <h1>${esc(a?sessName(a):prog().n)}</h1>
  ${a?`<div class="livebar"><span class="dotr" aria-hidden="true"></span><span>En cours depuis <span id="elapsed">${Math.round((Date.now()-a.start)/6e4)} min</span>, ${setsDone} séries sur ${setsTot}</span></div>`
@@ -1418,6 +1479,7 @@ function Home(){if(view.page==='progs')return Programs();
  ${S.progs.length>1&&!a?`<section class="col g6"><h2 class="lbl">Séance du jour</h2><div class="seg" role="group" aria-label="Séance du jour">${S.progs.map(p=>`<button class="${p.id===S.cur?'on':''}" aria-pressed="${p.id===S.cur}" data-a="pickprog" data-v="${p.id}">${esc(p.n)}${p.id===sug&&p.id!==S.cur?'<span class="dot"></span><span class="sr"> (suggérée)</span>':''}</button>`).join('')}</div>
   ${sug&&sug!==S.cur?`<span class="sm mut">Suite de ta rotation : <button class="link" data-a="pickprog" data-v="${sug}">${esc(pname(sug))}</button></span>`:''}</section>`:''}
  ${hot.length&&!allDone?`<p class="sm mut" style="margin:0">${hot.map(cap).join(', ')} : séance récente sur ce${hot.length>1?'s':''} muscle${hot.length>1?'s':''}. Fie-toi à tes sensations.</p>`:''}
+ ${gPending()&&!gLive()&&G.state!=='sync'?`<section class="card col" style="gap:8px"><b>Google Drive</b><span class="sm">Des modifications ne sont pas encore enregistrées sur ton Google Drive${GS.last?' (dernière synchro '+agoTxt(key(GS.last))+')':''}.</span><button class="btn2 acb" data-a="gsync">Synchroniser</button></section>`:''}
  ${needExp?`<section class="card col" style="gap:8px"><b>Sauvegarde</b><span class="sm">${expDays==null?'Tu n’as jamais exporté tes données.':'Dernier export '+agoTxt(S.prof.lastExp)+'.'} Tout est sur ce téléphone uniquement : un fichier exporté te protège si le téléphone est perdu ou effacé.</span><button class="btn2 acb" data-a="export">Exporter maintenant</button></section>`:''}
  <section class="col" style="gap:8px"><div class="row sb"><h2 class="lbl">Cette semaine</h2><span class="streak">${st?pl(st,'semaine')+' d’affilée':''}</span></div>
  <div class="week" role="group" aria-label="Cette semaine (touche un jour pour voir ou corriger)">${weekStrip()}</div></section>
@@ -1439,10 +1501,10 @@ function Programs(){const c=view.tpl,a=active();
   <div class="sm mut">${p.items.map(x=>`${esc(exo(x.id).n)} ${x.s}×${repTxt(x)}`).join(', ')||'Aucun exercice'}</div>
   <button class="btn2" data-a="editplan" data-v="${p.id}">${ic('edit',16)} Modifier</button></div>`).join('')}
  <button class="btn2" data-a="addprog">${ic('plus',16)} Ajouter une séance</button></section>
- <section class="col"><h2>Programmes tout prêts</h2>
- ${Object.entries(TPL).map(([k,t])=>`<div class="card col g6 ${c===k?'hl':''}"><div class="row sb"><b>${t.n}</b><span class="tag grey">${t.lvl}</span></div><span class="sm mut">${t.info}. ${t.progs.map(p=>p.n).join(', ')}.</span>
+ ${[['','Programmes tout prêts',''],['f','Côté femme : fessiers et cuisses','Priorité au bas du corps (hip thrust, fentes, soulevé de terre roumain, abduction), avec assez de haut du corps pour rester équilibrée. Ils conviennent à tout le monde.']].map(([cat,h,sub])=>`<section class="col"><h2>${h}</h2>${sub?`<p class="sm mut" style="margin:0">${sub}</p>`:''}
+ ${Object.entries(TPL).filter(([,t])=>(t.cat||'')===cat).map(([k,t])=>`<div class="card col g6 ${c===k?'hl':''}"><div class="row sb"><b>${t.n}</b><span class="tag grey">${t.lvl}</span></div><span class="sm mut">${t.info}. ${t.progs.map(p=>p.n).join(', ')}.</span>
   ${c===k?`<span class="sm">Remplacer ton programme par « ${t.n} » ? Ton historique, tes records et tes réglages de machines sont conservés.</span><div class="row"><button class="btn2 grow" data-a="tpl" data-v="">Annuler</button><button class="btn2 grow acb" data-a="usetpl" data-v="${k}">Utiliser</button></div>`
-  :`<button class="btn2" data-a="tpl" data-v="${k}">Choisir ce programme</button>`}</div>`).join('')}</section>`}
+  :`<button class="btn2" data-a="tpl" data-v="${k}">Choisir ce programme</button>`}</div>`).join('')}</section>`).join('')}`}
 
 /* ================= exercise details sheet (warm-up, drop set, plates, swap, movement) ================= */
 const CHIPS={reps:[5,6,8,10,12,15],s:[20,30,45,60,90,120],m:[20,40,60,100,200,400]};
@@ -2006,6 +2068,15 @@ function Prof(){const p=S.prof,X=XP(),T=tierOf(X.lvl),c=CTX(),got=BADGES.filter(
  <button class="card row sb" style="width:100%;text-align:left;color:var(--ink)" data-a="goalsheet"><span class="col" style="gap:2px"><span>Objectif</span><span class="xs mut">${({seche:'Sèche',maintien:'Maintien',masse:'Prise de masse'})[p.goal]}, ${(ACT[p.act]?.[0]||'').toLowerCase()}</span></span><span class="row" style="gap:4px"><b>${nf(goals().k)} kcal</b>${ic('chev',14)}</span></button>
  <label for="pf_water">Objectif d’eau par jour<select id="pf_water" data-c="prof" data-k="water">${[1.5,2,2.5,3,3.5].map(n=>`<option value="${n}" ${p.water==n?'selected':''}>${fmt(n)} L</option>`).join('')}</select></label></section>
  <section class="col"><h2 class="lbl">Tes données</h2>
+ ${window.claude?'':gOn()?`<div class="card col" style="gap:8px"><div class="row sb"><b>Google Drive</b><span class="sm ${G.state==='err'?'redc':G.state==='ok'?'okc':'mut'}">${G.state==='sync'?'Synchronisation…':G.state==='ok'?'À jour':G.state==='err'?'Erreur':gLive()?'Connecté':'En pause'}</span></div>
+  <span class="sm mut">${esc(GS.email||'Compte Google')}${GS.last?', dernière synchro '+agoTxt(key(GS.last))+' à '+hm(GS.last):''}.</span>
+  ${G.err?`<span class="sm redc">${esc(G.err)}</span>`:''}
+  ${gLive()?'<span class="xs mut">Chaque modification est envoyée automatiquement pendant l’heure qui suit la connexion. Ensuite, touche Synchroniser.</span>':''}
+  <div class="row"><button class="btn2 grow acb" data-a="gsync" ${G.state==='sync'?'disabled':''}>Synchroniser</button><button class="btn2 grow" data-a="goff">Déconnecter</button></div></div>`
+  :`<div class="card col" style="gap:8px"><b>Se connecter avec Google</b><span class="sm mut">Tes données sont enregistrées dans ton Google Drive, dans un dossier caché réservé à Charge : tu les retrouves sur un autre téléphone, et elles sont à l’abri si celui-ci est perdu. Charge ne voit aucun autre fichier de ton Drive.</span>
+  ${G.err?`<span class="sm redc">${esc(G.err)}</span>`:''}
+  ${gcid()?`<button class="btn" data-a="gsync" ${G.state==='sync'?'disabled':''}>${G.state==='sync'?'Connexion…':'Se connecter avec Google'}</button>`
+   :`<span class="xs mut">La connexion Google n’est pas encore configurée pour ce site.</span><label for="gcid">ID client Google (OAuth)<input id="gcid" data-c="gcid" placeholder="xxxxx.apps.googleusercontent.com" autocomplete="off"></label>`}</div>`}
  <div class="card col g4 sm"><div class="kv"><span>Sur cet appareil</span><span class="${localErr?'redc b':'okc'}">${localErr?'Refusé : '+localErr:'Enregistré'+(lastSaved?' à '+hm(lastSaved):'')}</span></div>
  ${window.claude?`<div class="kv"><span>Compte Claude</span><span class="${syncTxt[0]}">${syncTxt[1]}</span></div>`:''}
  <div class="kv"><span>Dernier export</span><span class="${expDays==null||expDays>14?'warnc':''}">${expDays==null?'jamais':agoTxt(p.lastExp)}</span></div>
@@ -2043,7 +2114,7 @@ function Onboard(){const s=view.ob||0,p=S.prof;
   <div class="col"><span class="lbl">Activité en dehors de la salle</span><div class="chips" role="group" aria-label="Activité" style="grid-template-columns:repeat(2,1fr)">${Object.entries(ACT).map(([k,[l]])=>`<button class="chip ${p.act===k?'on':''}" aria-pressed="${p.act===k}" style="font-size:15px" data-a="act" data-v="${k}">${l}</button>`).join('')}</div></div>
   <div class="col"><span class="lbl">Séances par semaine</span><div class="chips" role="group" aria-label="Séances par semaine" style="grid-template-columns:repeat(5,1fr)">${[2,3,4,5,6].map(n=>`<button class="chip ${p.sess==n?'on':''}" aria-pressed="${p.sess==n}" data-a="wsess" data-v="${n}">${n}</button>`).join('')}</div></div>
   <div class="card row sb"><span class="mut">Estimation de départ</span><span><b class="num" style="font-size:28px">${nf(g.k)}</b> kcal, ${g.p} g prot.</span></div>${nextB()}</div>`}
- const rec=p.sess<=3?'fb':p.sess===4?'hb':'ppl',ch=view.obt||(S.logs.length?'keep':rec);
+ const rec=p.sex==='f'?(p.sess<=3?'gf':'gl'):p.sess<=3?'fb':p.sess===4?'hb':'ppl',ch=view.obt||(S.logs.length?'keep':rec);
  return `<div class="ob">${dots}<h1 class="md">Ton programme</h1><p class="mut" style="margin:0">Tout se modifie ensuite : exercices, séries, fourchettes de répétitions, repos.</p>
   <div class="col">${S.logs.length?`<button class="item ${ch==='keep'?'on':''}" style="min-height:64px" aria-pressed="${ch==='keep'}" data-a="obt" data-v="keep"><div class="grow"><div class="t">Garder mon programme</div><div class="sm mut">${esc(S.pn)} : ${S.progs.map(x=>esc(x.n)).join(', ')}</div></div>${ch==='keep'?ic('check'):''}</button>`:''}
   ${Object.entries(TPL).map(([k,t])=>`<button class="item ${ch===k?'on':''}" style="min-height:64px" aria-pressed="${ch===k}" data-a="obt" data-v="${k}"><div class="grow"><div class="t">${t.n} ${k===rec?'<span class="tag">Conseillé</span>':''}</div><div class="sm mut">${t.lvl}, ${t.info}</div></div>${ch===k?ic('check'):''}</button>`).join('')}</div>
@@ -2272,7 +2343,9 @@ const A={
  codego:()=>afterCode($('#code').value),
  /* profil */
  sex:v=>{S.prof.sex=v;touch('prof');save();render()},
- install:()=>{view.inst=!view.inst;render()},sound:v=>{S.prof.sound=+v;touch('prof');save();render()},
+ install:()=>{view.inst=!view.inst;render()},
+ gsync:()=>{if(gLive())return gSync();gConnect()},
+ goff:()=>{gOff();render();toast('Compte Google déconnecté. Les données restent sur ce téléphone et dans ton Drive.')},sound:v=>{S.prof.sound=+v;touch('prof');save();render()},
  export:async()=>{if(BAD)return A.rawdl();const data=JSON.stringify(S,null,1);if(await saveFile('charge-sauvegarde-'+today()+'.json',data,'application/json')){S.prof.lastExp=today();touch('prof');save();render();toast('Sauvegarde exportée (sans les photos)')}},
  import:()=>$('#importfile').click(),
  noimp:()=>{view.imp=null;view.impforce=0;view.impwarn='';render()},
@@ -2326,7 +2399,8 @@ document.addEventListener('change',ev=>{const t=ev.target,d=t.dataset,c=d.c;
  if(c==='seat'){const e=S.ex.find(x=>x.id===d.v);if(e){e.seat=t.value.trim().slice(0,60);stamp(e);save()}return}
  if(c==='exinc'){const e=S.ex.find(x=>x.id===d.v);if(e){if(t.value)e.inc=+t.value;else delete e.inc;stamp(e);save();view.exset=1;render()}return}
  if(c==='snote'){const s=sessById(d.v);if(s){s.note=t.value.trim().slice(0,200);stamp(s);save()}return}
- if(c==='fm'){view.fm=t.value;return}});
+ if(c==='fm'){view.fm=t.value;return}
+ if(c==='gcid'){const v=t.value.trim();if(/^[\w-]+\.apps\.googleusercontent\.com$/.test(v)){try{localStorage.setItem('charge-gcid',v)}catch(e){}render()}else t.setAttribute('aria-invalid','true');return}});
 document.addEventListener('input',ev=>{const t=ev.target,i=t.dataset.i;
  if(t.dataset.row){const [id,k,f]=t.dataset.row.split('|');view.rows=view.rows||{};const T=view.rows[id]=view.rows[id]||[];T[+k]=T[+k]||{};T[+k][f]=t.value.replace(',','.');t.removeAttribute('aria-invalid');return}
  if(i==='exq'){$('#exlist').innerHTML=exList(t.value);return}
@@ -2338,7 +2412,7 @@ document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&$('#ov').innerHTM
  if(ev.key==='Enter'&&ev.target.dataset?.row){ev.preventDefault();const [id,k]=ev.target.dataset.row.split('|');A.tick(id+'|'+k)}});
 /* sheets follow the visible viewport: the keyboard never hides the bottom button */
 if(window.visualViewport){const vv=()=>document.documentElement.style.setProperty('--vvh',visualViewport.height+'px');visualViewport.addEventListener('resize',vv);vv()}
-document.addEventListener('visibilitychange',()=>{if(document.hidden)return;if(view.rest){lastLeft=-1;tickRest()}if(dbDoc)pushCloud();softRender()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)return;if(view.rest){lastLeft=-1;tickRest()}if(dbDoc)pushCloud();if(gOn()&&gLive())gSync();softRender()});
 
 /* ================= start ================= */
 boot().then(()=>{if(!BAD)evalBadges(true);render();if(BAD)return;restoreRest();loadRescue();cloud();initCaps();askPersist().then(()=>{if(tab==='prof')softRender()});if(migWarn)toast(migWarn)});

@@ -364,6 +364,15 @@ function Prof(){const p=S.prof,X=XP(),T=tierOf(X.lvl),c=CTX(),got=BADGES.filter(
  <button class="card row sb" style="width:100%;text-align:left;color:var(--ink)" data-a="goalsheet"><span class="col" style="gap:2px"><span>Objectif</span><span class="xs mut">${({seche:'Sèche',maintien:'Maintien',masse:'Prise de masse'})[p.goal]}, ${(ACT[p.act]?.[0]||'').toLowerCase()}</span></span><span class="row" style="gap:4px"><b>${nf(goals().k)} kcal</b>${ic('chev',14)}</span></button>
  <label for="pf_water">Objectif d’eau par jour<select id="pf_water" data-c="prof" data-k="water">${[1.5,2,2.5,3,3.5].map(n=>`<option value="${n}" ${p.water==n?'selected':''}>${fmt(n)} L</option>`).join('')}</select></label></section>
  <section class="col"><h2 class="lbl">Tes données</h2>
+ ${window.claude?'':gOn()?`<div class="card col" style="gap:8px"><div class="row sb"><b>Google Drive</b><span class="sm ${G.state==='err'?'redc':G.state==='ok'?'okc':'mut'}">${G.state==='sync'?'Synchronisation…':G.state==='ok'?'À jour':G.state==='err'?'Erreur':gLive()?'Connecté':'En pause'}</span></div>
+  <span class="sm mut">${esc(GS.email||'Compte Google')}${GS.last?', dernière synchro '+agoTxt(key(GS.last))+' à '+hm(GS.last):''}.</span>
+  ${G.err?`<span class="sm redc">${esc(G.err)}</span>`:''}
+  ${gLive()?'<span class="xs mut">Chaque modification est envoyée automatiquement pendant l’heure qui suit la connexion. Ensuite, touche Synchroniser.</span>':''}
+  <div class="row"><button class="btn2 grow acb" data-a="gsync" ${G.state==='sync'?'disabled':''}>Synchroniser</button><button class="btn2 grow" data-a="goff">Déconnecter</button></div></div>`
+  :`<div class="card col" style="gap:8px"><b>Se connecter avec Google</b><span class="sm mut">Tes données sont enregistrées dans ton Google Drive, dans un dossier caché réservé à Charge : tu les retrouves sur un autre téléphone, et elles sont à l’abri si celui-ci est perdu. Charge ne voit aucun autre fichier de ton Drive.</span>
+  ${G.err?`<span class="sm redc">${esc(G.err)}</span>`:''}
+  ${gcid()?`<button class="btn" data-a="gsync" ${G.state==='sync'?'disabled':''}>${G.state==='sync'?'Connexion…':'Se connecter avec Google'}</button>`
+   :`<span class="xs mut">La connexion Google n’est pas encore configurée pour ce site.</span><label for="gcid">ID client Google (OAuth)<input id="gcid" data-c="gcid" placeholder="xxxxx.apps.googleusercontent.com" autocomplete="off"></label>`}</div>`}
  <div class="card col g4 sm"><div class="kv"><span>Sur cet appareil</span><span class="${localErr?'redc b':'okc'}">${localErr?'Refusé : '+localErr:'Enregistré'+(lastSaved?' à '+hm(lastSaved):'')}</span></div>
  ${window.claude?`<div class="kv"><span>Compte Claude</span><span class="${syncTxt[0]}">${syncTxt[1]}</span></div>`:''}
  <div class="kv"><span>Dernier export</span><span class="${expDays==null||expDays>14?'warnc':''}">${expDays==null?'jamais':agoTxt(p.lastExp)}</span></div>
@@ -401,7 +410,7 @@ function Onboard(){const s=view.ob||0,p=S.prof;
   <div class="col"><span class="lbl">Activité en dehors de la salle</span><div class="chips" role="group" aria-label="Activité" style="grid-template-columns:repeat(2,1fr)">${Object.entries(ACT).map(([k,[l]])=>`<button class="chip ${p.act===k?'on':''}" aria-pressed="${p.act===k}" style="font-size:15px" data-a="act" data-v="${k}">${l}</button>`).join('')}</div></div>
   <div class="col"><span class="lbl">Séances par semaine</span><div class="chips" role="group" aria-label="Séances par semaine" style="grid-template-columns:repeat(5,1fr)">${[2,3,4,5,6].map(n=>`<button class="chip ${p.sess==n?'on':''}" aria-pressed="${p.sess==n}" data-a="wsess" data-v="${n}">${n}</button>`).join('')}</div></div>
   <div class="card row sb"><span class="mut">Estimation de départ</span><span><b class="num" style="font-size:28px">${nf(g.k)}</b> kcal, ${g.p} g prot.</span></div>${nextB()}</div>`}
- const rec=p.sess<=3?'fb':p.sess===4?'hb':'ppl',ch=view.obt||(S.logs.length?'keep':rec);
+ const rec=p.sex==='f'?(p.sess<=3?'gf':'gl'):p.sess<=3?'fb':p.sess===4?'hb':'ppl',ch=view.obt||(S.logs.length?'keep':rec);
  return `<div class="ob">${dots}<h1 class="md">Ton programme</h1><p class="mut" style="margin:0">Tout se modifie ensuite : exercices, séries, fourchettes de répétitions, repos.</p>
   <div class="col">${S.logs.length?`<button class="item ${ch==='keep'?'on':''}" style="min-height:64px" aria-pressed="${ch==='keep'}" data-a="obt" data-v="keep"><div class="grow"><div class="t">Garder mon programme</div><div class="sm mut">${esc(S.pn)} : ${S.progs.map(x=>esc(x.n)).join(', ')}</div></div>${ch==='keep'?ic('check'):''}</button>`:''}
   ${Object.entries(TPL).map(([k,t])=>`<button class="item ${ch===k?'on':''}" style="min-height:64px" aria-pressed="${ch===k}" data-a="obt" data-v="${k}"><div class="grow"><div class="t">${t.n} ${k===rec?'<span class="tag">Conseillé</span>':''}</div><div class="sm mut">${t.lvl}, ${t.info}</div></div>${ch===k?ic('check'):''}</button>`).join('')}</div>

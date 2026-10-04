@@ -1,9 +1,9 @@
-/* Charge 5.0 — cache hors ligne.
+/* Charge 5.1 — cache hors ligne.
    - Seules les réponses HTTP valides (2xx, non opaques) entrent dans le cache : une erreur ne remplace jamais une copie qui marche.
    - La page est gardée sous une seule clé, './' (Cloudflare Pages redirige index.html vers /, et Safari refuse une page en cache issue d'une redirection).
    - Ouverture : réseau, mais si rien n'arrive en 2,5 s on sert la copie en cache. Autres fichiers : cache d'abord, puis réseau.
    - Chaque écriture du cache est attendue (waitUntil) : elle n'est pas perdue si le navigateur arrête le service worker. */
-const C='charge-v5.0',PAGE='./',FILES=['manifest.webmanifest','icon-192.png','icon-512.png','apple-touch-icon.png'];
+const C='charge-v5.1',PAGE='./',FILES=['manifest.webmanifest','icon-192.png','icon-512.png','apple-touch-icon.png'];
 const good=res=>res&&res.ok&&res.type!=='opaque'&&res.type!=='opaqueredirect';
 const clean=async res=>res.redirected?new Response(await res.clone().blob(),{status:res.status,statusText:res.statusText,headers:res.headers}):res.clone();
 async function put(key,res){if(!good(res))return;try{const c=await caches.open(C);await c.put(key,await clean(res))}catch(e){}}
@@ -19,4 +19,5 @@ self.addEventListener('fetch',e=>{const r=e.request;if(r.method!=='GET')return;
    const live=net.then(res=>good(res)?res.clone():(cached||res));
    if(!cached)return live.catch(()=>new Response(OFFLINE,{headers:{'Content-Type':'text/html; charset=utf-8'}}));
    return Promise.race([live.catch(()=>cached),new Promise(ok=>setTimeout(()=>ok(cached),2500))])})());return}
+ const u=new URL(r.url);if(u.origin!==location.origin&&!/fonts\.(googleapis|gstatic)\.com$|cdn\.jsdelivr\.net$|unpkg\.com$/.test(u.hostname))return;
  e.respondWith((async()=>{const m=await caches.match(r);if(m)return m;const res=await fetch(r);e.waitUntil(put(r,res.clone()));return res})())});

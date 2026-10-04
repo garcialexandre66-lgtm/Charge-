@@ -205,7 +205,9 @@ const A={
  codego:()=>afterCode($('#code').value),
  /* profil */
  sex:v=>{S.prof.sex=v;touch('prof');save();render()},
- install:()=>{view.inst=!view.inst;render()},sound:v=>{S.prof.sound=+v;touch('prof');save();render()},
+ install:()=>{view.inst=!view.inst;render()},
+ gsync:()=>{if(gLive())return gSync();gConnect()},
+ goff:()=>{gOff();render();toast('Compte Google déconnecté. Les données restent sur ce téléphone et dans ton Drive.')},sound:v=>{S.prof.sound=+v;touch('prof');save();render()},
  export:async()=>{if(BAD)return A.rawdl();const data=JSON.stringify(S,null,1);if(await saveFile('charge-sauvegarde-'+today()+'.json',data,'application/json')){S.prof.lastExp=today();touch('prof');save();render();toast('Sauvegarde exportée (sans les photos)')}},
  import:()=>$('#importfile').click(),
  noimp:()=>{view.imp=null;view.impforce=0;view.impwarn='';render()},
@@ -259,7 +261,8 @@ document.addEventListener('change',ev=>{const t=ev.target,d=t.dataset,c=d.c;
  if(c==='seat'){const e=S.ex.find(x=>x.id===d.v);if(e){e.seat=t.value.trim().slice(0,60);stamp(e);save()}return}
  if(c==='exinc'){const e=S.ex.find(x=>x.id===d.v);if(e){if(t.value)e.inc=+t.value;else delete e.inc;stamp(e);save();view.exset=1;render()}return}
  if(c==='snote'){const s=sessById(d.v);if(s){s.note=t.value.trim().slice(0,200);stamp(s);save()}return}
- if(c==='fm'){view.fm=t.value;return}});
+ if(c==='fm'){view.fm=t.value;return}
+ if(c==='gcid'){const v=t.value.trim();if(/^[\w-]+\.apps\.googleusercontent\.com$/.test(v)){try{localStorage.setItem('charge-gcid',v)}catch(e){}render()}else t.setAttribute('aria-invalid','true');return}});
 document.addEventListener('input',ev=>{const t=ev.target,i=t.dataset.i;
  if(t.dataset.row){const [id,k,f]=t.dataset.row.split('|');view.rows=view.rows||{};const T=view.rows[id]=view.rows[id]||[];T[+k]=T[+k]||{};T[+k][f]=t.value.replace(',','.');t.removeAttribute('aria-invalid');return}
  if(i==='exq'){$('#exlist').innerHTML=exList(t.value);return}
@@ -271,7 +274,7 @@ document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&$('#ov').innerHTM
  if(ev.key==='Enter'&&ev.target.dataset?.row){ev.preventDefault();const [id,k]=ev.target.dataset.row.split('|');A.tick(id+'|'+k)}});
 /* sheets follow the visible viewport: the keyboard never hides the bottom button */
 if(window.visualViewport){const vv=()=>document.documentElement.style.setProperty('--vvh',visualViewport.height+'px');visualViewport.addEventListener('resize',vv);vv()}
-document.addEventListener('visibilitychange',()=>{if(document.hidden)return;if(view.rest){lastLeft=-1;tickRest()}if(dbDoc)pushCloud();softRender()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)return;if(view.rest){lastLeft=-1;tickRest()}if(dbDoc)pushCloud();if(gOn()&&gLive())gSync();softRender()});
 
 /* ================= start ================= */
 boot().then(()=>{if(!BAD)evalBadges(true);render();if(BAD)return;restoreRest();loadRescue();cloud();initCaps();askPersist().then(()=>{if(tab==='prof')softRender()});if(migWarn)toast(migWarn)});

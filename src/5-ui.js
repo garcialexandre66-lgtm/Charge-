@@ -79,7 +79,7 @@ function Home(){if(view.page==='progs')return Programs();
  const estMin=Math.round(P.reduce((s,p)=>s+p.s*((p.rest||S.prof.rest)+45),0)/60/5)*5;
  const F=fatigue(0),hot=[...new Set(P.flatMap(p=>exo(p.id).m.slice(0,1)))].filter(m=>(F[m]?.f||0)>.5);
  const CH=challenges(),nt=nutDay(today()),g=goals(),st=streak(),sug=suggested();
- const expDays=S.prof.lastExp?daysAgo(S.prof.lastExp):null,needExp=!dbDoc&&doneSess().length>=3&&(expDays==null||expDays>14);
+ const expDays=S.prof.lastExp?daysAgo(S.prof.lastExp):null,needExp=!dbDoc&&!(gOn()&&GS.last&&Date.now()-GS.last<14*864e5)&&doneSess().length>=3&&(expDays==null||expDays>14);
  return `<header class="page-head"><span class="date">${cap(dLong(today()))}${S.prof.name?', '+esc(S.prof.name):''}</span>
  <h1>${esc(a?sessName(a):prog().n)}</h1>
  ${a?`<div class="livebar"><span class="dotr" aria-hidden="true"></span><span>En cours depuis <span id="elapsed">${Math.round((Date.now()-a.start)/6e4)} min</span>, ${setsDone} séries sur ${setsTot}</span></div>`
@@ -96,6 +96,7 @@ function Home(){if(view.page==='progs')return Programs();
  ${S.progs.length>1&&!a?`<section class="col g6"><h2 class="lbl">Séance du jour</h2><div class="seg" role="group" aria-label="Séance du jour">${S.progs.map(p=>`<button class="${p.id===S.cur?'on':''}" aria-pressed="${p.id===S.cur}" data-a="pickprog" data-v="${p.id}">${esc(p.n)}${p.id===sug&&p.id!==S.cur?'<span class="dot"></span><span class="sr"> (suggérée)</span>':''}</button>`).join('')}</div>
   ${sug&&sug!==S.cur?`<span class="sm mut">Suite de ta rotation : <button class="link" data-a="pickprog" data-v="${sug}">${esc(pname(sug))}</button></span>`:''}</section>`:''}
  ${hot.length&&!allDone?`<p class="sm mut" style="margin:0">${hot.map(cap).join(', ')} : séance récente sur ce${hot.length>1?'s':''} muscle${hot.length>1?'s':''}. Fie-toi à tes sensations.</p>`:''}
+ ${gPending()&&!gLive()&&G.state!=='sync'?`<section class="card col" style="gap:8px"><b>Google Drive</b><span class="sm">Des modifications ne sont pas encore enregistrées sur ton Google Drive${GS.last?' (dernière synchro '+agoTxt(key(GS.last))+')':''}.</span><button class="btn2 acb" data-a="gsync">Synchroniser</button></section>`:''}
  ${needExp?`<section class="card col" style="gap:8px"><b>Sauvegarde</b><span class="sm">${expDays==null?'Tu n’as jamais exporté tes données.':'Dernier export '+agoTxt(S.prof.lastExp)+'.'} Tout est sur ce téléphone uniquement : un fichier exporté te protège si le téléphone est perdu ou effacé.</span><button class="btn2 acb" data-a="export">Exporter maintenant</button></section>`:''}
  <section class="col" style="gap:8px"><div class="row sb"><h2 class="lbl">Cette semaine</h2><span class="streak">${st?pl(st,'semaine')+' d’affilée':''}</span></div>
  <div class="week" role="group" aria-label="Cette semaine (touche un jour pour voir ou corriger)">${weekStrip()}</div></section>
@@ -117,10 +118,10 @@ function Programs(){const c=view.tpl,a=active();
   <div class="sm mut">${p.items.map(x=>`${esc(exo(x.id).n)} ${x.s}×${repTxt(x)}`).join(', ')||'Aucun exercice'}</div>
   <button class="btn2" data-a="editplan" data-v="${p.id}">${ic('edit',16)} Modifier</button></div>`).join('')}
  <button class="btn2" data-a="addprog">${ic('plus',16)} Ajouter une séance</button></section>
- <section class="col"><h2>Programmes tout prêts</h2>
- ${Object.entries(TPL).map(([k,t])=>`<div class="card col g6 ${c===k?'hl':''}"><div class="row sb"><b>${t.n}</b><span class="tag grey">${t.lvl}</span></div><span class="sm mut">${t.info}. ${t.progs.map(p=>p.n).join(', ')}.</span>
+ ${[['','Programmes tout prêts',''],['f','Côté femme : fessiers et cuisses','Priorité au bas du corps (hip thrust, fentes, soulevé de terre roumain, abduction), avec assez de haut du corps pour rester équilibrée. Ils conviennent à tout le monde.']].map(([cat,h,sub])=>`<section class="col"><h2>${h}</h2>${sub?`<p class="sm mut" style="margin:0">${sub}</p>`:''}
+ ${Object.entries(TPL).filter(([,t])=>(t.cat||'')===cat).map(([k,t])=>`<div class="card col g6 ${c===k?'hl':''}"><div class="row sb"><b>${t.n}</b><span class="tag grey">${t.lvl}</span></div><span class="sm mut">${t.info}. ${t.progs.map(p=>p.n).join(', ')}.</span>
   ${c===k?`<span class="sm">Remplacer ton programme par « ${t.n} » ? Ton historique, tes records et tes réglages de machines sont conservés.</span><div class="row"><button class="btn2 grow" data-a="tpl" data-v="">Annuler</button><button class="btn2 grow acb" data-a="usetpl" data-v="${k}">Utiliser</button></div>`
-  :`<button class="btn2" data-a="tpl" data-v="${k}">Choisir ce programme</button>`}</div>`).join('')}</section>`}
+  :`<button class="btn2" data-a="tpl" data-v="${k}">Choisir ce programme</button>`}</div>`).join('')}</section>`).join('')}`}
 
 /* ================= exercise details sheet (warm-up, drop set, plates, swap, movement) ================= */
 const CHIPS={reps:[5,6,8,10,12,15],s:[20,30,45,60,90,120],m:[20,40,60,100,200,400]};

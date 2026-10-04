@@ -1,3 +1,18 @@
+# Charge 5.1
+
+## Nouveau
+- **Côté femme : fessiers et cuisses** (page Programme) : Fessiers débutante (3 j), Fessiers & cuisses (4 j), Bas du corps 3 jours, Fessiers à la maison (haltères). Conseillé au premier lancement si « Femme » est choisi.
+- **Se connecter avec Google** (Profil) : les données sont enregistrées dans le Google Drive de l’utilisateur, dans le dossier caché réservé à l’appli (droit `drive.appdata` : Charge ne voit aucun autre fichier). Synchro automatique pendant l’heure qui suit la connexion, puis bouton « Synchroniser ». Même fusion que la synchro entre appareils (versions, suppressions définitives).
+- Le service worker ne met plus en cache les réponses d’autres sites (Google), sauf polices et lecteur de codes-barres.
+- Comparaison des copies insensible à l’ordre des champs (évite des envois en double).
+
+### Activer la connexion Google (une fois)
+1. https://console.cloud.google.com → créer un projet « Charge ».
+2. « API et services » → Bibliothèque → activer **Google Drive API**.
+3. « Écran de consentement OAuth » → Externe → nom « Charge », ton e-mail → ajouter le champ d’application `.../auth/drive.appdata` → en mode « Test », ajouter les adresses Gmail autorisées.
+4. « Identifiants » → Créer → **ID client OAuth** → type « Application Web » → Origines JavaScript autorisées : l’adresse du site (ex. `https://charge.pages.dev`).
+5. Copier l’ID (`….apps.googleusercontent.com`) dans `GCLIENT` (src/2-core.js) puis `node build.js` — ou le coller dans Profil sur chaque appareil.
+
 # Charge 5.0
 
 Sources dans `src/`, site prêt à déployer dans `site/` (`node build.js` recompile `site/index.html`).
