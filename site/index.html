@@ -18,13 +18,24 @@
  --ac:#2F5BEA;--acbg:#EAF0FE;--onac:#FFFFFF;--ok:#15803D;--okbg:#E8F6EE;--onok:#FFFFFF;--warn:#A15C07;--warnbg:#FFF5E5;--red:#C62828;--redbg:#FDECEC;--onred:#FFFFFF;
  --gold:#F5B700;--shadow:0 1px 2px rgba(17,24,39,.06),0 4px 16px rgba(17,24,39,.06);--shade:rgba(17,24,39,.45);
  --f:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+ /* colour families: one per muscle group, plus tinted backgrounds (text on tints uses the solid colour) */
+ --push:#EA580C;--pushbg:#FFF1E7;--pull:#2563EB;--pullbg:#EAF1FE;--legs:#059669;--legsbg:#E6F7F1;--glute:#DB2777;--glutebg:#FDECF4;--core:#7C3AED;--corebg:#F2ECFE;
+ --prot:#E11D48;--carb:#D97706;--fat:#0D9488;--water:#0284C7;
+ --grad:linear-gradient(135deg,#2F5BEA 0%,#6D3FE0 100%);--grad2:linear-gradient(135deg,#059669 0%,#0EA5E9 100%);--grad3:linear-gradient(135deg,#F97316 0%,#DB2777 100%);
  /* names used by the drawings and trophies */
  --paper:var(--bg);--paper2:var(--soft);--rule:var(--line);--rule2:var(--line2);--hl:var(--gold);--fw:var(--f);
  color-scheme:light}
 @media (prefers-color-scheme:dark){:root{
  --bg:#0B0F17;--card:#161B26;--soft:#1F2533;--ink:#F3F4F6;--ink2:#C3C8D1;--ink3:#9AA1AD;--line:#262D3A;--line2:#3A4354;
  --ac:#6C93F5;--acbg:rgba(108,147,245,.16);--onac:#0B0F17;--ok:#4ADE80;--okbg:rgba(74,222,128,.13);--onok:#0B0F17;--warn:#F5B451;--warnbg:rgba(245,180,81,.13);--red:#F87171;--redbg:rgba(248,113,113,.13);--onred:#0B0F17;
- --gold:#F5C542;--shadow:0 1px 2px rgba(0,0,0,.3);--shade:rgba(0,0,0,.6);color-scheme:dark}}
+ --gold:#F5C542;--shadow:0 1px 2px rgba(0,0,0,.3);--shade:rgba(0,0,0,.6);
+ --push:#FB923C;--pushbg:rgba(251,146,60,.14);--pull:#60A5FA;--pullbg:rgba(96,165,250,.14);--legs:#34D399;--legsbg:rgba(52,211,153,.13);--glute:#F472B6;--glutebg:rgba(244,114,182,.14);--core:#A78BFA;--corebg:rgba(167,139,250,.15);
+ --prot:#FB7185;--carb:#FBBF24;--fat:#2DD4BF;--water:#38BDF8;
+ --grad:linear-gradient(135deg,#3B63E0 0%,#6D3FE0 100%);--grad2:linear-gradient(135deg,#047857 0%,#0369A1 100%);--grad3:linear-gradient(135deg,#C2410C 0%,#BE185D 100%);color-scheme:dark}}
+/* group helpers: .gp-push etc. set --g (solid) and --gbg (tint) for any component */
+.gp-push{--g:var(--push);--gbg:var(--pushbg)}.gp-pull{--g:var(--pull);--gbg:var(--pullbg)}.gp-legs{--g:var(--legs);--gbg:var(--legsbg)}.gp-glute{--g:var(--glute);--gbg:var(--glutebg)}.gp-core{--g:var(--core);--gbg:var(--corebg)}
+.gtag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:13px;font-weight:700;background:var(--gbg,var(--soft));color:var(--g,var(--ink2));white-space:nowrap}
+.gdot{display:inline-block;width:10px;height:10px;border-radius:5px;background:var(--g,var(--ink3));flex:none}
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.45 var(--f);-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
@@ -281,6 +292,11 @@ const $=s=>document.querySelector(s);
 /* rough recovery window in hours per muscle: an app heuristic (large ≈72 h, medium ≈48 h, small ≈36 h), not a measurement */
 const MUS={quadriceps:72,ischios:72,fessiers:72,dorsaux:72,pectoraux:72,lombaires:72,épaules:48,trapèzes:48,biceps:48,triceps:48,adducteurs:48,mollets:36,abdos:36,obliques:36,'avant-bras':36};
 const KINDS={machine:'Machine',barre:'Barre',halt:'Haltères',poulie:'Poulie',pdc:'Poids du corps'};
+/* muscle families used for colour: push (chest, shoulders, triceps), pull (back, biceps, forearms, traps), legs, glutes, core */
+const GRP={pectoraux:'push',épaules:'push',triceps:'push',dorsaux:'pull',biceps:'pull','avant-bras':'pull',trapèzes:'pull',quadriceps:'legs',ischios:'legs',adducteurs:'legs',mollets:'legs',fessiers:'glute',abdos:'core',obliques:'core',lombaires:'core'};
+const GRPN={push:'Poussée',pull:'Tirage',legs:'Jambes',glute:'Fessiers',core:'Gainage'};
+const grpOfM=m=>GRP[m]||'core';
+const grp=id=>grpOfM(exo(id).m[0]);
 /* exercise library: id, name, muscles (first = main), kind, compound, cues */
 const LIB=[
  /* pectoraux */

@@ -6,6 +6,11 @@ const $=s=>document.querySelector(s);
 /* rough recovery window in hours per muscle: an app heuristic (large ≈72 h, medium ≈48 h, small ≈36 h), not a measurement */
 const MUS={quadriceps:72,ischios:72,fessiers:72,dorsaux:72,pectoraux:72,lombaires:72,épaules:48,trapèzes:48,biceps:48,triceps:48,adducteurs:48,mollets:36,abdos:36,obliques:36,'avant-bras':36};
 const KINDS={machine:'Machine',barre:'Barre',halt:'Haltères',poulie:'Poulie',pdc:'Poids du corps'};
+/* muscle families used for colour: push (chest, shoulders, triceps), pull (back, biceps, forearms, traps), legs, glutes, core */
+const GRP={pectoraux:'push',épaules:'push',triceps:'push',dorsaux:'pull',biceps:'pull','avant-bras':'pull',trapèzes:'pull',quadriceps:'legs',ischios:'legs',adducteurs:'legs',mollets:'legs',fessiers:'glute',abdos:'core',obliques:'core',lombaires:'core'};
+const GRPN={push:'Poussée',pull:'Tirage',legs:'Jambes',glute:'Fessiers',core:'Gainage'};
+const grpOfM=m=>GRP[m]||'core';
+const grp=id=>grpOfM(exo(id).m[0]);
 /* exercise library: id, name, muscles (first = main), kind, compound, cues */
 const LIB=[
  /* pectoraux */
