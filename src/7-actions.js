@@ -303,5 +303,10 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)return;if(a
 /* ================= start ================= */
 boot().then(()=>{if(!BAD)evalBadges(true);render();if(BAD)return;restoreRest();loadRescue();cloud();initCaps();askPersist().then(()=>{if(tab==='prof')softRender()});if(migWarn)toast(migWarn)});
 /* standalone site only (Cloudflare): offline cache; the Claude viewer has window.claude and no service workers */
-if(!window.claude&&'serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+if(!window.claude&&'serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){
+ /* mise à jour : sw.js jamais pris dans le cache HTTP, vérifié à chaque retour sur l'appli ; quand une nouvelle version prend la main, la page se recharge (sauf séance en cours : simple message) */
+ const hadSW=!!navigator.serviceWorker.controller;let reloaded=false;
+ navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!hadSW||reloaded)return;if(active()){toast('Nouvelle version prête : elle s\'affichera à la prochaine ouverture');return}reloaded=true;location.reload()});
+ navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{reg.update().catch(()=>{});document.addEventListener('visibilitychange',()=>{if(!document.hidden)reg.update().catch(()=>{})})}).catch(()=>{});
+}
 </script>
