@@ -114,7 +114,7 @@ ol.plan li.done span.t{color:var(--muted);text-decoration:line-through}
   <section class="rules">
     <h3>Les règles du jeu</h3>
     <ul>
-      <li>Avant de cliquer « Je m'engage », tu peux relancer une fois si le business est impossible pour toi (pas d'ordi, moins de 18 ans pour le programme TikTok). Après, la roue est bloquée 14 jours.</li>
+      <li>Tu relances autant que tu veux avant de cliquer « Je m'engage ». Après, tu peux encore arrêter le sprint, avec une confirmation.</li>
       <li>À J14, compare au chiffre de l'objectif. Atteint : tu continues et tu doubles. Raté de loin : tu relances. Le sprint sert à mesurer.</li>
       <li>Avant le premier paiement : statut micro-entrepreneur, gratuit sur le guichet unique (formalites.entreprise.gouv.fr). Les revenus TikTok et d'affiliation se déclarent aussi.</li>
       <li>Exclus volontairement : dropshipping, trading, crypto, vente de formations, MLM. Mise élevée ou taux d'échec très haut.</li>
@@ -151,7 +151,7 @@ const B = [
   t:["Choisir ta paire de langues (FR ↔ EN, ES…)","Sous-titrer 3 vidéos virales comme exemples","Lister 30 créateurs FR qui pourraient percer en anglais (ou l'inverse)","Leur envoyer une vidéo sous-titrée gratuitement","Proposer un forfait mensuel","S'inscrire sur Fiverr et Malt","Bilan : envois, réponses, clients"]}
 ];
 
-const KEY="roulette-digital-v1", DAY=864e5, SPRINT=14;
+const KEY="roulette-digital-v2", DAY=864e5, SPRINT=14;
 let st={idx:null,locked:false,start:0,done:[],usedRespin:false};
 try{const s=JSON.parse(localStorage.getItem(KEY)||"null"); if(s) st=Object.assign(st,s);}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}};
@@ -209,11 +209,11 @@ function render(){
   draw();
   const now=Date.now(), left=st.locked?Math.ceil((st.start+SPRINT*DAY-now)/DAY):0;
   if(st.locked&&left<=0){} // sprint fini : bouton de relance visible
-  $("spin").disabled=spinning||st.locked||(st.idx!==null&&!st.locked);
+  $("spin").disabled=spinning||st.locked;
   $("spin").textContent=spinning?"Ça tourne…":"Lancer";
   $("lockmsg").textContent=st.locked
     ?(left>0?`Roue bloquée : J${SPRINT-left+1} sur ${SPRINT}, encore ${left} jour${left>1?"s":""} à fond.`:"Sprint terminé. Compare à l'objectif, puis décide.")
-    :(st.idx!==null&&!spinning?"Engage-toi ou utilise ta relance unique.":"");
+    :(st.idx!==null&&!spinning?"Engage-toi ou relance autant que tu veux.":"");
   const r=$("result");
   if(st.idx===null||spinning){r.hidden=true;return}
   const b=B[st.idx]; r.hidden=false;
@@ -234,14 +234,20 @@ function render(){
   const n=st.done.filter(Boolean).length;
   $("r-count").textContent=`${n}/7`; $("r-bar").style.width=(n/7*100)+"%";
   $("commit").hidden=st.locked;
-  $("respin").hidden=st.locked||st.usedRespin;
-  $("kill").hidden=!(st.locked&&left<=0);
+  $("respin").hidden=st.locked;
+  $("kill").hidden=!st.locked;
+  $("kill").textContent=left<=0?"Sprint terminé : relancer":(confirmKill?"Confirmer : abandonner le sprint":"Arrêter le sprint et relancer");
 }
 $("spin").onclick=spin;
 $("wheel").onclick=()=>{ if(!$("spin").disabled) spin(); };
 $("commit").onclick=()=>{st.locked=true;st.start=Date.now();save();render()};
-$("respin").onclick=()=>{st.usedRespin=true;st.idx=null;save();render();spin()};
-$("kill").onclick=()=>{st={idx:null,locked:false,start:0,done:[],usedRespin:false};save();render()};
+let confirmKill=false;
+$("respin").onclick=()=>{st.idx=null;save();render();spin()};
+$("kill").onclick=()=>{
+  const left=Math.ceil((st.start+SPRINT*DAY-Date.now())/DAY);
+  if(left>0&&!confirmKill){confirmKill=true;render();return}
+  confirmKill=false;st={idx:null,locked:false,start:0,done:[],usedRespin:false};save();render();spin();
+};
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",draw);
 new MutationObserver(draw).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
 document.fonts&&document.fonts.ready.then(draw);
