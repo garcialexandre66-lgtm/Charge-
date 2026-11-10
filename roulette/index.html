@@ -1,0 +1,249 @@
+<title>Roulette Business</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Archivo:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout : une colonne — roue en haut, fiche du business tiré + sprint 14 jours en dessous */
+:root{
+  --bg:#eef1f6; --surface:#ffffff; --ink:#141a2b; --muted:#5b6478; --line:#d6dbe6;
+  --seg-a:#1f3fbf; --seg-b:#141a2b; --accent:#ffb000; --on-seg:#ffffff;
+  --ok:#1a8a4a; --warn:#b4231c;
+  --display:"Bricolage Grotesque",system-ui,sans-serif;
+  --body:"Archivo",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c1020; --surface:#151b30; --ink:#e9ecf5; --muted:#9aa3ba; --line:#2a3250;
+  --seg-a:#3456e0; --seg-b:#232b48; --accent:#ffb000; --on-seg:#ffffff;
+  --ok:#4cc07f; --warn:#ff6b5e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c1020; --surface:#151b30; --ink:#e9ecf5; --muted:#9aa3ba; --line:#2a3250;
+  --seg-a:#3456e0; --seg-b:#232b48; --accent:#ffb000; --on-seg:#ffffff;
+  --ok:#4cc07f; --warn:#ff6b5e; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+main{max-width:760px;margin:0 auto;display:grid;gap:28px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.1}
+h1{font-size:clamp(2rem,6vw,3.2rem);font-weight:800;letter-spacing:-.02em}
+h1 span{color:var(--seg-a)}
+.lede{color:var(--muted);margin:8px 0 0;max-width:62ch}
+.wheel-zone{display:grid;justify-items:center;gap:18px}
+.wheel-wrap{position:relative;width:min(520px,100%);aspect-ratio:1;max-width:100%}
+canvas{width:100%;height:100%;display:block}
+.pointer{position:absolute;left:50%;top:-6px;transform:translateX(-50%);width:0;height:0;
+  border-left:18px solid transparent;border-right:18px solid transparent;border-top:34px solid var(--accent);
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}
+.controls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+button{font:700 1rem var(--body);border:0;border-radius:10px;padding:14px 26px;cursor:pointer}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.btn-spin{background:var(--accent);color:#141a2b;font-size:1.15rem;letter-spacing:.04em;text-transform:uppercase}
+.btn-spin:disabled{opacity:.45;cursor:not-allowed}
+.btn-ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn-commit{background:var(--seg-a);color:#fff}
+.btn-kill{background:transparent;color:var(--warn);border:1.5px solid var(--warn)}
+.lockmsg{font:500 .9rem var(--mono);color:var(--muted);text-align:center;min-height:1.4em}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:24px;display:grid;gap:18px}
+.card h2{font-size:clamp(1.6rem,4.5vw,2.2rem);font-weight:800}
+.eyebrow{font:500 .75rem var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.fact{border-top:2px solid var(--ink);padding-top:8px;min-width:0}
+.fact b{display:block;font:500 1.05rem var(--mono);font-variant-numeric:tabular-nums}
+.fact small{color:var(--muted);font-size:.8rem}
+.goal{border-left:4px solid var(--accent);padding:10px 14px;background:color-mix(in srgb,var(--accent) 12%,transparent);border-radius:0 8px 8px 0}
+.goal strong{font-family:var(--display)}
+ol.plan{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+ol.plan li{display:grid;grid-template-columns:auto auto 1fr;gap:12px;align-items:start;padding:10px 0;border-bottom:1px solid var(--line)}
+ol.plan li:last-child{border-bottom:0}
+ol.plan input{width:20px;height:20px;margin-top:2px;accent-color:var(--ok)}
+ol.plan .day{font:500 .8rem var(--mono);color:var(--seg-a);padding-top:3px;min-width:2.6em}
+ol.plan li.done span.t{color:var(--muted);text-decoration:line-through}
+.progress{height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--ok);width:0;transition:width .3s}
+.warnbox{font-size:.9rem;color:var(--muted)}
+.warnbox b{color:var(--warn)}
+.rules{color:var(--muted);font-size:.92rem;display:grid;gap:6px}
+.rules h3{color:var(--ink);font-size:1.1rem}
+.rules ul{margin:0;padding-left:1.2em;display:grid;gap:4px}
+@media (max-width:520px){.facts{grid-template-columns:1fr}.card{padding:18px}}
+@media (prefers-reduced-motion:reduce){.progress i{transition:none}}
+</style>
+
+<main>
+  <header>
+    <h1>Roulette <span>Business</span></h1>
+    <p class="lede">12 business qui rapportent un premier euro en moins de 30 jours, avec peu ou pas de mise. Tu lances, ça tombe, tu t'engages 14 jours à fond. Pas de relance tant que le sprint n'est pas fini.</p>
+  </header>
+
+  <section class="wheel-zone" aria-label="Roulette">
+    <div class="wheel-wrap">
+      <canvas id="wheel" width="1040" height="1040" role="img" aria-label="Roue des 12 business"></canvas>
+      <div class="pointer" aria-hidden="true"></div>
+    </div>
+    <div class="controls">
+      <button id="spin" class="btn-spin">Lancer</button>
+    </div>
+    <p class="lockmsg" id="lockmsg" aria-live="polite"></p>
+  </section>
+
+  <section class="card" id="result" hidden aria-live="polite">
+    <div>
+      <div class="eyebrow" id="r-eyebrow">La roue a choisi</div>
+      <h2 id="r-name"></h2>
+      <p id="r-pitch" style="margin:6px 0 0"></p>
+    </div>
+    <div class="facts">
+      <div class="fact"><small>Mise de départ</small><b id="r-cost"></b></div>
+      <div class="fact"><small>Premier euro</small><b id="r-first"></b></div>
+      <div class="fact"><small>Prix type</small><b id="r-price"></b></div>
+    </div>
+    <div class="goal"><strong>Objectif à J14 :</strong> <span id="r-goal"></span></div>
+    <div>
+      <div class="eyebrow" style="margin-bottom:8px">Sprint à fond — <span id="r-count">0/7</span></div>
+      <div class="progress"><i id="r-bar"></i></div>
+      <ol class="plan" id="r-plan"></ol>
+    </div>
+    <p class="warnbox" id="r-warn" hidden></p>
+    <div class="controls" style="justify-content:flex-start">
+      <button id="commit" class="btn-commit">Je m'engage 14 jours</button>
+      <button id="respin" class="btn-ghost">Relancer</button>
+      <button id="kill" class="btn-kill" hidden>Sprint terminé : relancer</button>
+    </div>
+  </section>
+
+  <section class="rules">
+    <h3>Les règles du jeu</h3>
+    <ul>
+      <li>Avant de cliquer « Je m'engage », tu peux relancer une fois si le business est impossible pour toi (pas de permis, pas de matériel). Après, la roue est bloquée 14 jours.</li>
+      <li>À J14, compare au chiffre de l'objectif. Atteint : tu continues et tu doubles. Raté de loin : tu relances, sans culpabilité. Le sprint sert à mesurer, pas à prouver.</li>
+      <li>Avant la première facture : statut micro-entrepreneur, gratuit sur le guichet unique (formalites.entreprise.gouv.fr). Ménage, jardinage, cours et garde d'animaux peuvent être déclarés « services à la personne » : ton client récupère 50 % en crédit d'impôt, c'est ton meilleur argument de vente.</li>
+      <li>Exclus volontairement : dropshipping, trading, crypto, vente de formations, MLM. Délai long, mise élevée ou taux d'échec très haut.</li>
+    </ul>
+  </section>
+</main>
+
+<script>
+const B = [
+ {n:"Achat-revente",s:"Revente",p:"Acheter sous-coté (lots, vide-greniers, Leboncoin), revendre au prix du marché sur Vinted/Leboncoin.",c:"100–300 €",f:"3–7 jours",pr:"marge ×2 visée",g:"300 € de marge brute encaissée.",
+  t:["Vider chez toi : 20 objets en ligne, photos en lumière du jour","Choisir UNE niche (sneakers, Lego, jeux vidéo, électronique) et noter 50 prix VENDUS","Acheter 5 articles avec marge ≥ ×2 sur le prix vendu constaté","Annonces : titre avec marque + modèle + taille, 6 photos minimum","Baisser de 10 % tout ce qui n'a aucun favori après 48 h","Réinvestir 100 % du cash encaissé dans la même niche","Bilan : marge par article, temps passé, rotation du stock"]},
+ {n:"Lavage auto à domicile",s:"Lavage auto",p:"Nettoyage intérieur/extérieur chez le client, sans local.",c:"150 €",f:"2–5 jours",pr:"40–90 € / voiture",g:"10 voitures payées.",
+  t:["Acheter aspirateur, microfibres, produits sans eau ; faire ta propre voiture en avant/après","Laver 2 voitures de proches gratuitement contre photos + avis","Poster avant/après sur les groupes Facebook de ta ville et Leboncoin","Flyers sur 100 pare-brise d'un parking de bureaux","Proposer un forfait mensuel à chaque client satisfait","Démarcher 3 garages/concessions pour la préparation de VO","Bilan : prix moyen, temps par voiture, % de clients récurrents"]},
+ {n:"Ménage & conciergerie Airbnb",s:"Conciergerie",p:"Ménage, linge et remise des clés entre deux locations courte durée.",c:"50 €",f:"7–14 jours",pr:"25–60 € / rotation",g:"2 hôtes avec rotations régulières.",
+  t:["Lister 40 annonces Airbnb dans un rayon de 5 km","Contacter 20 hôtes par la messagerie Airbnb ou Facebook","Préparer une checklist ménage photo par pièce (ta preuve de qualité)","Faire la première rotation, envoyer les photos à l'hôte","Proposer de gérer aussi les clés et le linge (+15 €)","Demander à chaque hôte 1 recommandation d'un autre hôte","Bilan : nombre de rotations / semaine, temps par rotation"]},
+ {n:"Coaching sportif",s:"Coaching",p:"Programmes et suivi en ligne ou en salle/parc pour débutants.",c:"0 €",f:"5–10 jours",pr:"50–150 € / mois",g:"3 clients payants.",
+  w:"<b>Attention :</b> encadrer contre rémunération exige en France une carte professionnelle (BPJEPS, STAPS…). Sans diplôme, limite-toi à vendre des programmes écrits sans encadrement, ou passe d'abord le diplôme.",
+  t:["Définir une cible précise (ex : « reprendre le sport après 30 ans »)","Publier ta propre transformation ou ton programme gratuit sur 1 réseau","Offrir 3 séances d'essai à des proches contre témoignage","Créer une offre unique : 4 semaines, prix fixe, résultat promis mesurable","Envoyer 30 messages directs à des personnes qui ont commenté du contenu fitness","Faire 5 appels découverte de 15 min","Bilan : taux de conversion appel → client"]},
+ {n:"Sites web pour commerces",s:"Sites web",p:"Sites vitrine simples pour artisans et commerces qui n'en ont pas.",c:"0–20 €",f:"7–14 jours",pr:"300–800 € / site",g:"1 site vendu.",
+  t:["Trouver 30 commerces sur Google Maps sans site ou avec un site cassé","Faire 3 maquettes gratuites de leur futur site (Carrd, Framer, WordPress)","Aller en personne montrer la maquette sur ton téléphone","Offre claire : prix fixe, en ligne en 7 jours, nom de domaine inclus","Relancer chaque prospect à J+3","Proposer la maintenance à 20–40 € / mois","Bilan : visites, devis envoyés, signés"]},
+ {n:"Montage vidéo courte",s:"Montage",p:"Monter des Reels/TikTok/Shorts pour créateurs et petites marques.",c:"0 €",f:"5–14 jours",pr:"15–50 € / vidéo",g:"2 clients récurrents.",
+  t:["Installer CapCut ou DaVinci, refaire 3 vidéos virales en style pro","Lister 40 créateurs entre 5k et 100k abonnés qui postent sans montage","Envoyer à 10 d'entre eux une vidéo montée gratuitement à partir de leur contenu","Proposer un pack 8 vidéos / mois","Publier tes avant/après en portfolio","Relancer, demander un retour même en cas de refus","Bilan : messages envoyés → réponses → clients"]},
+ {n:"Cours particuliers",s:"Cours",p:"Soutien scolaire ou cours d'une compétence que tu maîtrises.",c:"0 €",f:"3–7 jours",pr:"20–40 € / heure",g:"6 heures de cours par semaine.",
+  t:["Choisir 2 matières/niveaux où tu es solide","Créer un profil sur Superprof et une annonce Leboncoin","Afficher chez les boulangers, pharmacies et près des lycées","Proposer la 1re heure à moitié prix","Préparer une fiche bilan à envoyer aux parents après chaque cours","Demander 1 recommandation par famille satisfaite","Bilan : heures / semaine, taux de rétention"]},
+ {n:"Garde & promenade d'animaux",s:"Animaux",p:"Promenades de chiens, visites de chats, garde pendant les vacances.",c:"0 €",f:"3–10 jours",pr:"10–25 € / visite",g:"5 clients réguliers.",
+  t:["Créer un profil Rover/Animaute avec photos et disponibilités","Annonces dans les groupes Facebook du quartier","Flyers chez les vétérinaires et animaleries","Offrir une première promenade de rencontre","Envoyer photo + compte rendu après chaque visite","Proposer un forfait 5 promenades / semaine","Bilan : visites / semaine, clients récurrents"]},
+ {n:"Petits travaux & jardinage",s:"Jardin",p:"Tonte, taille, débarras, montage de meubles, petites réparations.",c:"50–200 €",f:"2–7 jours",pr:"25–40 € / heure",g:"8 interventions payées.",
+  t:["Lister ce que tu sais faire sans risque (pas d'électricité ni de gaz)","Profil sur les plateformes de jobbing + annonce Leboncoin","Boîtage de 200 flyers dans un quartier pavillonnaire","Prix à l'heure clair, devis gratuit sur photo","Photo avant/après sur chaque chantier","Proposer un passage mensuel pour l'entretien","Bilan : chiffre par heure réelle, trajets inclus"]},
+ {n:"Contenu UGC pour marques",s:"UGC",p:"Filmer des vidéos face caméra que les marques utilisent en pub.",c:"0–50 €",f:"14–30 jours",pr:"100–300 € / vidéo",g:"2 collaborations payées.",
+  t:["Tourner 3 vidéos d'exemple sur des produits que tu possèdes","Monter un portfolio d'une page (Canva ou Notion)","Lister 50 marques e-commerce françaises qui font de la pub vidéo","Envoyer 20 emails courts avec le lien du portfolio","S'inscrire sur 2 plateformes UGC","Relancer à J+4 tous les contacts","Bilan : taux de réponse, prix accepté"]},
+ {n:"Réseaux sociaux de commerces",s:"Réseaux",p:"Gérer Instagram/Google Business de restaurants et boutiques locales.",c:"0 €",f:"7–14 jours",pr:"200–500 € / mois",g:"1 contrat mensuel signé.",
+  t:["Repérer 30 commerces avec un Instagram inactif ou une fiche Google mal remplie","Faire un audit gratuit d'1 page pour 5 d'entre eux","Passer en personne, aux heures creuses","Offre : 12 posts + fiche Google à jour, prix fixe mensuel","Premier mois avec résultat chiffré (vues, appels, itinéraires)","Demander une introduction auprès d'un commerçant voisin","Bilan : audits faits → rendez-vous → signatures"]},
+ {n:"Vitres & poubelles",s:"Vitres",p:"Lavage de vitres ou de bacs à ordures chez les particuliers.",c:"80–150 €",f:"3–7 jours",pr:"30–80 € / passage",g:"15 clients abonnés.",
+  t:["Acheter raclette, perche, seau, produits ; t'entraîner chez toi","Choisir 1 quartier dense de maisons","Porte-à-porte le samedi : 100 portes frappées","Proposer un abonnement mensuel ou trimestriel","Planifier les passages par rue pour réduire les trajets","Laisser une carte à chaque voisin du client","Bilan : clients par 100 portes, revenu récurrent"]}
+];
+
+const KEY="roulette-business-v1", DAY=864e5, SPRINT=14;
+let st={idx:null,locked:false,start:0,done:[],usedRespin:false};
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null"); if(s) st=Object.assign(st,s);}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}};
+
+const cv=document.getElementById("wheel"), ctx=cv.getContext("2d");
+const N=B.length, SEG=2*Math.PI/N, R=cv.width/2;
+let rot=0, spinning=false;
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+function draw(){
+  const cA=css("--seg-a"),cB=css("--seg-b"),acc=css("--accent"),on=css("--on-seg"),bg=css("--bg");
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.save();ctx.translate(R,R);
+  for(let i=0;i<N;i++){
+    const a0=rot+i*SEG;
+    ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,R-8,a0,a0+SEG);ctx.closePath();
+    ctx.fillStyle=(st.idx===i&&!spinning)?acc:(i%2?cB:cA);ctx.fill();
+    ctx.strokeStyle=bg;ctx.lineWidth=4;ctx.stroke();
+    ctx.save();ctx.rotate(a0+SEG/2);
+    ctx.fillStyle=(st.idx===i&&!spinning)?"#141a2b":on;
+    ctx.font="700 34px Archivo, system-ui, sans-serif";ctx.textAlign="right";ctx.textBaseline="middle";
+    ctx.fillText(B[i].s,R-44,0);ctx.restore();
+  }
+  ctx.beginPath();ctx.arc(0,0,R-8,0,2*Math.PI);ctx.lineWidth=10;ctx.strokeStyle=acc;ctx.stroke();
+  ctx.beginPath();ctx.arc(0,0,64,0,2*Math.PI);ctx.fillStyle=bg;ctx.fill();
+  ctx.lineWidth=8;ctx.strokeStyle=acc;ctx.stroke();
+  ctx.fillStyle=css("--ink");ctx.font="800 30px 'Bricolage Grotesque', system-ui";ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.fillText("GO",0,2);
+  ctx.restore();
+}
+function rotFor(i){ // angle pour que le segment i soit sous le pointeur (haut = -π/2)
+  const u=0.15+Math.random()*0.7;
+  return -Math.PI/2-(i+u)*SEG;
+}
+function spin(){
+  if(spinning||st.locked) return;
+  spinning=true;render();
+  const target=Math.floor(Math.random()*N);
+  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let end=rotFor(target); const twoPi=2*Math.PI;
+  while(end<rot+twoPi*(reduce?1:6)) end+=twoPi;
+  const start=rot, dur=reduce?600:4800, t0=performance.now();
+  st.idx=null;
+  (function step(now){
+    const k=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-k,4);
+    rot=start+(end-start)*e; draw();
+    if(k<1) requestAnimationFrame(step);
+    else{rot=end%twoPi;spinning=false;st.idx=target;st.done=new Array(7).fill(false);save();render();
+      document.getElementById("result").scrollIntoView({behavior:reduce?"auto":"smooth",block:"start"});}
+  })(t0);
+}
+
+const $=id=>document.getElementById(id);
+function render(){
+  draw();
+  const now=Date.now(), left=st.locked?Math.ceil((st.start+SPRINT*DAY-now)/DAY):0;
+  if(st.locked&&left<=0){} // sprint fini : bouton de relance visible
+  $("spin").disabled=spinning||st.locked||(st.idx!==null&&!st.locked);
+  $("spin").textContent=spinning?"Ça tourne…":"Lancer";
+  $("lockmsg").textContent=st.locked
+    ?(left>0?`Roue bloquée : J${SPRINT-left+1} sur ${SPRINT}, encore ${left} jour${left>1?"s":""} à fond.`:"Sprint terminé. Compare à l'objectif, puis décide.")
+    :(st.idx!==null&&!spinning?"Engage-toi ou utilise ta relance unique.":"");
+  const r=$("result");
+  if(st.idx===null||spinning){r.hidden=true;return}
+  const b=B[st.idx]; r.hidden=false;
+  $("r-eyebrow").textContent=st.locked?"Ton business en cours":"La roue a choisi";
+  $("r-name").textContent=b.n; $("r-pitch").textContent=b.p;
+  $("r-cost").textContent=b.c; $("r-first").textContent=b.f; $("r-price").textContent=b.pr;
+  $("r-goal").textContent=b.g;
+  const w=$("r-warn"); if(b.w){w.innerHTML=b.w;w.hidden=false}else w.hidden=true;
+  const ol=$("r-plan"); ol.innerHTML="";
+  b.t.forEach((txt,i)=>{
+    const li=document.createElement("li"); if(st.done[i]) li.className="done";
+    const id="task-"+i;
+    li.innerHTML=`<input type="checkbox" id="${id}" ${st.done[i]?"checked":""} ${st.locked?"":"disabled"}><label class="day" for="${id}">J${i*2+1}</label><span class="t"></span>`;
+    li.querySelector(".t").textContent=txt;
+    li.querySelector("input").addEventListener("change",ev=>{st.done[i]=ev.target.checked;save();render()});
+    ol.appendChild(li);
+  });
+  const n=st.done.filter(Boolean).length;
+  $("r-count").textContent=`${n}/7`; $("r-bar").style.width=(n/7*100)+"%";
+  $("commit").hidden=st.locked;
+  $("respin").hidden=st.locked||st.usedRespin;
+  $("kill").hidden=!(st.locked&&left<=0);
+}
+$("spin").onclick=spin;
+$("wheel").onclick=()=>{ if(!$("spin").disabled) spin(); };
+$("commit").onclick=()=>{st.locked=true;st.start=Date.now();save();render()};
+$("respin").onclick=()=>{st.usedRespin=true;st.idx=null;save();render();spin()};
+$("kill").onclick=()=>{st={idx:null,locked:false,start:0,done:[],usedRespin:false};save();render()};
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",draw);
+new MutationObserver(draw).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+document.fonts&&document.fonts.ready.then(draw);
+render();
+</script>
