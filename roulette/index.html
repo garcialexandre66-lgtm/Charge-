@@ -1,4 +1,4 @@
-<title>Roulette Business</title>
+<title>Roulette Business Digital</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Archivo:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap">
@@ -71,13 +71,13 @@ ol.plan li.done span.t{color:var(--muted);text-decoration:line-through}
 
 <main>
   <header>
-    <h1>Roulette <span>Business</span></h1>
-    <p class="lede">12 business qui rapportent un premier euro en moins de 30 jours, avec peu ou pas de mise. Tu lances, ça tombe, tu t'engages 14 jours à fond. Pas de relance tant que le sprint n'est pas fini.</p>
+    <h1>Roulette <span>Digital</span></h1>
+    <p class="lede">12 business 100 % en ligne, depuis ton téléphone ou ton ordi, avec peu ou pas de mise. Tu lances, ça tombe, tu t'engages 14 jours à fond. Pas de relance tant que le sprint n'est pas fini.</p>
   </header>
 
   <section class="wheel-zone" aria-label="Roulette">
     <div class="wheel-wrap">
-      <canvas id="wheel" width="1040" height="1040" role="img" aria-label="Roue des 12 business"></canvas>
+      <canvas id="wheel" width="1040" height="1040" role="img" aria-label="Roue des 12 business digitaux"></canvas>
       <div class="pointer" aria-hidden="true"></div>
     </div>
     <div class="controls">
@@ -114,44 +114,44 @@ ol.plan li.done span.t{color:var(--muted);text-decoration:line-through}
   <section class="rules">
     <h3>Les règles du jeu</h3>
     <ul>
-      <li>Avant de cliquer « Je m'engage », tu peux relancer une fois si le business est impossible pour toi (pas de permis, pas de matériel). Après, la roue est bloquée 14 jours.</li>
-      <li>À J14, compare au chiffre de l'objectif. Atteint : tu continues et tu doubles. Raté de loin : tu relances, sans culpabilité. Le sprint sert à mesurer, pas à prouver.</li>
-      <li>Avant la première facture : statut micro-entrepreneur, gratuit sur le guichet unique (formalites.entreprise.gouv.fr). Ménage, jardinage, cours et garde d'animaux peuvent être déclarés « services à la personne » : ton client récupère 50 % en crédit d'impôt, c'est ton meilleur argument de vente.</li>
-      <li>Exclus volontairement : dropshipping, trading, crypto, vente de formations, MLM. Délai long, mise élevée ou taux d'échec très haut.</li>
+      <li>Avant de cliquer « Je m'engage », tu peux relancer une fois si le business est impossible pour toi (pas d'ordi, moins de 18 ans pour le programme TikTok). Après, la roue est bloquée 14 jours.</li>
+      <li>À J14, compare au chiffre de l'objectif. Atteint : tu continues et tu doubles. Raté de loin : tu relances. Le sprint sert à mesurer.</li>
+      <li>Avant le premier paiement : statut micro-entrepreneur, gratuit sur le guichet unique (formalites.entreprise.gouv.fr). Les revenus TikTok et d'affiliation se déclarent aussi.</li>
+      <li>Exclus volontairement : dropshipping, trading, crypto, vente de formations, MLM. Mise élevée ou taux d'échec très haut.</li>
     </ul>
   </section>
 </main>
 
 <script>
 const B = [
- {n:"Achat-revente",s:"Revente",p:"Acheter sous-coté (lots, vide-greniers, Leboncoin), revendre au prix du marché sur Vinted/Leboncoin.",c:"100–300 €",f:"3–7 jours",pr:"marge ×2 visée",g:"300 € de marge brute encaissée.",
-  t:["Vider chez toi : 20 objets en ligne, photos en lumière du jour","Choisir UNE niche (sneakers, Lego, jeux vidéo, électronique) et noter 50 prix VENDUS","Acheter 5 articles avec marge ≥ ×2 sur le prix vendu constaté","Annonces : titre avec marque + modèle + taille, 6 photos minimum","Baisser de 10 % tout ce qui n'a aucun favori après 48 h","Réinvestir 100 % du cash encaissé dans la même niche","Bilan : marge par article, temps passé, rotation du stock"]},
- {n:"Lavage auto à domicile",s:"Lavage auto",p:"Nettoyage intérieur/extérieur chez le client, sans local.",c:"150 €",f:"2–5 jours",pr:"40–90 € / voiture",g:"10 voitures payées.",
-  t:["Acheter aspirateur, microfibres, produits sans eau ; faire ta propre voiture en avant/après","Laver 2 voitures de proches gratuitement contre photos + avis","Poster avant/après sur les groupes Facebook de ta ville et Leboncoin","Flyers sur 100 pare-brise d'un parking de bureaux","Proposer un forfait mensuel à chaque client satisfait","Démarcher 3 garages/concessions pour la préparation de VO","Bilan : prix moyen, temps par voiture, % de clients récurrents"]},
- {n:"Ménage & conciergerie Airbnb",s:"Conciergerie",p:"Ménage, linge et remise des clés entre deux locations courte durée.",c:"50 €",f:"7–14 jours",pr:"25–60 € / rotation",g:"2 hôtes avec rotations régulières.",
-  t:["Lister 40 annonces Airbnb dans un rayon de 5 km","Contacter 20 hôtes par la messagerie Airbnb ou Facebook","Préparer une checklist ménage photo par pièce (ta preuve de qualité)","Faire la première rotation, envoyer les photos à l'hôte","Proposer de gérer aussi les clés et le linge (+15 €)","Demander à chaque hôte 1 recommandation d'un autre hôte","Bilan : nombre de rotations / semaine, temps par rotation"]},
- {n:"Coaching sportif",s:"Coaching",p:"Programmes et suivi en ligne ou en salle/parc pour débutants.",c:"0 €",f:"5–10 jours",pr:"50–150 € / mois",g:"3 clients payants.",
-  w:"<b>Attention :</b> encadrer contre rémunération exige en France une carte professionnelle (BPJEPS, STAPS…). Sans diplôme, limite-toi à vendre des programmes écrits sans encadrement, ou passe d'abord le diplôme.",
-  t:["Définir une cible précise (ex : « reprendre le sport après 30 ans »)","Publier ta propre transformation ou ton programme gratuit sur 1 réseau","Offrir 3 séances d'essai à des proches contre témoignage","Créer une offre unique : 4 semaines, prix fixe, résultat promis mesurable","Envoyer 30 messages directs à des personnes qui ont commenté du contenu fitness","Faire 5 appels découverte de 15 min","Bilan : taux de conversion appel → client"]},
- {n:"Sites web pour commerces",s:"Sites web",p:"Sites vitrine simples pour artisans et commerces qui n'en ont pas.",c:"0–20 €",f:"7–14 jours",pr:"300–800 € / site",g:"1 site vendu.",
-  t:["Trouver 30 commerces sur Google Maps sans site ou avec un site cassé","Faire 3 maquettes gratuites de leur futur site (Carrd, Framer, WordPress)","Aller en personne montrer la maquette sur ton téléphone","Offre claire : prix fixe, en ligne en 7 jours, nom de domaine inclus","Relancer chaque prospect à J+3","Proposer la maintenance à 20–40 € / mois","Bilan : visites, devis envoyés, signés"]},
- {n:"Montage vidéo courte",s:"Montage",p:"Monter des Reels/TikTok/Shorts pour créateurs et petites marques.",c:"0 €",f:"5–14 jours",pr:"15–50 € / vidéo",g:"2 clients récurrents.",
-  t:["Installer CapCut ou DaVinci, refaire 3 vidéos virales en style pro","Lister 40 créateurs entre 5k et 100k abonnés qui postent sans montage","Envoyer à 10 d'entre eux une vidéo montée gratuitement à partir de leur contenu","Proposer un pack 8 vidéos / mois","Publier tes avant/après en portfolio","Relancer, demander un retour même en cas de refus","Bilan : messages envoyés → réponses → clients"]},
- {n:"Cours particuliers",s:"Cours",p:"Soutien scolaire ou cours d'une compétence que tu maîtrises.",c:"0 €",f:"3–7 jours",pr:"20–40 € / heure",g:"6 heures de cours par semaine.",
-  t:["Choisir 2 matières/niveaux où tu es solide","Créer un profil sur Superprof et une annonce Leboncoin","Afficher chez les boulangers, pharmacies et près des lycées","Proposer la 1re heure à moitié prix","Préparer une fiche bilan à envoyer aux parents après chaque cours","Demander 1 recommandation par famille satisfaite","Bilan : heures / semaine, taux de rétention"]},
- {n:"Garde & promenade d'animaux",s:"Animaux",p:"Promenades de chiens, visites de chats, garde pendant les vacances.",c:"0 €",f:"3–10 jours",pr:"10–25 € / visite",g:"5 clients réguliers.",
-  t:["Créer un profil Rover/Animaute avec photos et disponibilités","Annonces dans les groupes Facebook du quartier","Flyers chez les vétérinaires et animaleries","Offrir une première promenade de rencontre","Envoyer photo + compte rendu après chaque visite","Proposer un forfait 5 promenades / semaine","Bilan : visites / semaine, clients récurrents"]},
- {n:"Petits travaux & jardinage",s:"Jardin",p:"Tonte, taille, débarras, montage de meubles, petites réparations.",c:"50–200 €",f:"2–7 jours",pr:"25–40 € / heure",g:"8 interventions payées.",
-  t:["Lister ce que tu sais faire sans risque (pas d'électricité ni de gaz)","Profil sur les plateformes de jobbing + annonce Leboncoin","Boîtage de 200 flyers dans un quartier pavillonnaire","Prix à l'heure clair, devis gratuit sur photo","Photo avant/après sur chaque chantier","Proposer un passage mensuel pour l'entretien","Bilan : chiffre par heure réelle, trajets inclus"]},
- {n:"Contenu UGC pour marques",s:"UGC",p:"Filmer des vidéos face caméra que les marques utilisent en pub.",c:"0–50 €",f:"14–30 jours",pr:"100–300 € / vidéo",g:"2 collaborations payées.",
-  t:["Tourner 3 vidéos d'exemple sur des produits que tu possèdes","Monter un portfolio d'une page (Canva ou Notion)","Lister 50 marques e-commerce françaises qui font de la pub vidéo","Envoyer 20 emails courts avec le lien du portfolio","S'inscrire sur 2 plateformes UGC","Relancer à J+4 tous les contacts","Bilan : taux de réponse, prix accepté"]},
- {n:"Réseaux sociaux de commerces",s:"Réseaux",p:"Gérer Instagram/Google Business de restaurants et boutiques locales.",c:"0 €",f:"7–14 jours",pr:"200–500 € / mois",g:"1 contrat mensuel signé.",
-  t:["Repérer 30 commerces avec un Instagram inactif ou une fiche Google mal remplie","Faire un audit gratuit d'1 page pour 5 d'entre eux","Passer en personne, aux heures creuses","Offre : 12 posts + fiche Google à jour, prix fixe mensuel","Premier mois avec résultat chiffré (vues, appels, itinéraires)","Demander une introduction auprès d'un commerçant voisin","Bilan : audits faits → rendez-vous → signatures"]},
- {n:"Vitres & poubelles",s:"Vitres",p:"Lavage de vitres ou de bacs à ordures chez les particuliers.",c:"80–150 €",f:"3–7 jours",pr:"30–80 € / passage",g:"15 clients abonnés.",
-  t:["Acheter raclette, perche, seau, produits ; t'entraîner chez toi","Choisir 1 quartier dense de maisons","Porte-à-porte le samedi : 100 portes frappées","Proposer un abonnement mensuel ou trimestriel","Planifier les passages par rue pour réduire les trajets","Laisser une carte à chaque voisin du client","Bilan : clients par 100 portes, revenu récurrent"]}
+ {n:"Compte TikTok thématique",s:"TikTok",p:"Un compte sur une niche précise (finance perso, IA, sport, faits insolites), monétisé par le programme créateurs et l'affiliation.",c:"0 €",f:"30–60 jours",pr:"0,4–1 € / 1000 vues",g:"1 000 abonnés et 1 vidéo à plus de 50 000 vues.",
+  w:"<b>Délai réel :</b> le programme de rémunération TikTok demande 18 ans, 10 000 abonnés et 100 000 vues sur 30 jours, avec des vidéos de plus d'une minute. Le premier euro arrive plus tard que sur les autres cases ; l'affiliation (case TikTok Shop) peut démarrer avant.",
+  t:["Choisir une niche et noter 20 vidéos qui ont dépassé 1 M de vues dedans","Écrire 10 accroches de 3 secondes inspirées des meilleures","Publier 3 vidéos par jour, même format, même heure","Lire les stats de chaque vidéo : rétention à 3 s et durée moyenne","Refaire en 3 variantes la vidéo qui a le mieux marché","Ajouter un lien d'affiliation ou une offre en bio","Bilan : vues moyennes, abonnés gagnés, meilleure accroche"]},
+ {n:"Affiliation TikTok Shop",s:"TikTok Shop",p:"Présenter des produits du TikTok Shop dans tes vidéos et toucher une commission sur chaque vente.",c:"0 €",f:"7–21 jours",pr:"10–20 % / vente",g:"20 ventes affiliées.",
+  t:["Activer le compte affilié dans le Creator Center","Trouver 10 produits avec beaucoup de ventes et une commission ≥ 10 %","Demander des échantillons gratuits aux vendeurs","Filmer 2 vidéos par produit : démonstration et avant/après","Publier 3 vidéos par jour avec le panier épinglé","Faire 1 live de 30 minutes sur le meilleur produit","Bilan : ventes par produit, commission par vidéo"]},
+ {n:"Clipping pour créateurs",s:"Clipping",p:"Découper streams et podcasts en clips viraux, payé au nombre de vues via des campagnes de créateurs.",c:"0 €",f:"5–14 jours",pr:"1–3 € / 1000 vues",g:"500 000 vues rémunérées.",
+  t:["S'inscrire sur une plateforme de campagnes de clipping (Whop, etc.)","Choisir 2 campagnes dont le créateur fait déjà des vues","Créer 3 comptes dédiés (TikTok, Shorts, Reels)","Sortir 5 clips par jour : sous-titres, accroche dans la 1re seconde","Garder seulement les formats qui dépassent la moyenne","Soumettre les vues validées pour paiement","Bilan : vues par clip, euros par heure"]},
+ {n:"Montage vidéo courte",s:"Montage",p:"Monter TikTok, Shorts et Reels pour créateurs et marques, entièrement à distance.",c:"0 €",f:"5–14 jours",pr:"15–50 € / vidéo",g:"2 clients récurrents.",
+  t:["Installer CapCut ou DaVinci, refaire 3 vidéos virales en style pro","Lister 40 créateurs entre 5 k et 100 k abonnés qui postent sans montage","Envoyer à 10 d'entre eux une vidéo montée gratuitement à partir de leur contenu","Proposer un pack 8 vidéos par mois","Publier tes avant/après en portfolio","Relancer, demander un retour même en cas de refus","Bilan : messages envoyés, réponses, clients"]},
+ {n:"Contenu UGC pour marques",s:"UGC",p:"Filmer des vidéos face caméra que les marques utilisent en pub. Pas besoin d'avoir des abonnés.",c:"0–50 €",f:"14–30 jours",pr:"100–300 € / vidéo",g:"2 collaborations payées.",
+  t:["Tourner 3 vidéos d'exemple sur des produits que tu possèdes","Monter un portfolio d'une page (Canva ou Notion)","Lister 50 marques e-commerce qui font de la pub vidéo","Envoyer 20 emails courts avec le lien du portfolio","S'inscrire sur 2 plateformes UGC","Relancer à J+4 tous les contacts","Bilan : taux de réponse, prix accepté"]},
+ {n:"Gestion de comptes TikTok",s:"Community",p:"Gérer le TikTok et l'Instagram de commerces et marques qui n'ont pas le temps.",c:"0 €",f:"7–14 jours",pr:"200–500 € / mois",g:"1 contrat mensuel signé.",
+  t:["Repérer 30 marques ou commerces avec un compte inactif","Faire un audit vidéo de 2 minutes pour 5 d'entre eux","L'envoyer en message privé ou par email","Offre : 12 vidéos par mois, prix fixe","Livrer le 1er mois avec des chiffres (vues, abonnés, clics)","Demander une recommandation à chaque client","Bilan : audits, rendez-vous, signatures"]},
+ {n:"Miniatures YouTube",s:"Miniatures",p:"Designer des miniatures qui font cliquer, pour des youtubeurs.",c:"0–15 €",f:"5–14 jours",pr:"15–60 € / miniature",g:"3 clients réguliers.",
+  t:["Refaire 10 miniatures de vraies vidéos en meilleur (Photoshop, Photopea ou Canva)","Monter un portfolio avant/après","Lister 50 chaînes de 10 k à 200 k abonnés avec des miniatures faibles","Envoyer à 15 d'entre eux une miniature refaite gratuitement","Proposer un pack de 4 par mois","Poster ton travail sur X et les forums de créateurs","Bilan : envois, réponses, clients"]},
+ {n:"Templates Notion & Canva",s:"Templates",p:"Créer des modèles prêts à l'emploi (planners, budgets, kits réseaux sociaux) et les vendre sur Etsy ou Gumroad.",c:"0–20 €",f:"7–30 jours",pr:"5–30 € / vente",g:"15 ventes.",
+  t:["Chercher sur Etsy les templates avec beaucoup d'avis et peu de concurrence","Créer 3 templates dans une seule niche","Faire des visuels de vente propres (mockups)","Mettre en ligne sur Etsy et Gumroad avec des mots-clés précis","Publier 2 TikTok par jour qui montrent le template en usage","Créer un pack groupé à prix plus élevé","Bilan : vues de fiche, taux de conversion, ventes"]},
+ {n:"Ghostwriting LinkedIn",s:"LinkedIn",p:"Écrire les posts LinkedIn de dirigeants et freelances.",c:"0 €",f:"7–21 jours",pr:"300–1000 € / mois",g:"1 client à l'abonnement.",
+  t:["Publier 1 post par jour sur ton propre profil pendant le sprint","Lister 40 fondateurs qui postent rarement ou mal","Réécrire gratuitement 1 de leurs posts et le leur envoyer","Offre : 8 à 12 posts par mois, entretien de 30 minutes inclus","Faire 5 appels découverte","Livrer vite, mesurer les impressions avant/après","Bilan : messages, appels, signature"]},
+ {n:"Landing pages & sites",s:"Sites",p:"Créer des pages de vente et sites simples pour créateurs et petites marques, à distance.",c:"0–20 €",f:"7–14 jours",pr:"300–800 € / page",g:"1 page vendue.",
+  t:["Faire 3 pages exemples avec Framer ou Carrd","Lister 30 créateurs qui vendent une offre sans vraie page","Leur envoyer une maquette rapide de leur future page","Offre claire : prix fixe, en ligne en 5 jours","Relancer chaque prospect à J+3","Proposer la maintenance à 20–40 € par mois","Bilan : maquettes envoyées, devis, signés"]},
+ {n:"Automatisations IA",s:"IA",p:"Installer chatbots, réponses automatiques et automatisations (Make, Zapier) pour des petites entreprises.",c:"0–30 €",f:"10–21 jours",pr:"300–1500 € / projet",g:"1 projet payé.",
+  t:["Construire 2 démos : chatbot FAQ et réponse automatique aux emails","Filmer chaque démo en 60 secondes","Cibler 1 secteur (agences immo, salles de sport, e-commerce)","Envoyer 30 messages avec la vidéo de démo","Faire 3 appels pour chiffrer le temps qu'ils perdent","Proposer un prix fixe + abonnement de maintenance","Bilan : messages, appels, projet signé"]},
+ {n:"Sous-titres & traduction",s:"Sous-titres",p:"Sous-titrer et traduire les vidéos de créateurs pour qu'ils touchent d'autres pays.",c:"0 €",f:"5–14 jours",pr:"10–40 € / vidéo",g:"2 clients récurrents.",
+  t:["Choisir ta paire de langues (FR ↔ EN, ES…)","Sous-titrer 3 vidéos virales comme exemples","Lister 30 créateurs FR qui pourraient percer en anglais (ou l'inverse)","Leur envoyer une vidéo sous-titrée gratuitement","Proposer un forfait mensuel","S'inscrire sur Fiverr et Malt","Bilan : envois, réponses, clients"]}
 ];
 
-const KEY="roulette-business-v1", DAY=864e5, SPRINT=14;
+const KEY="roulette-digital-v1", DAY=864e5, SPRINT=14;
 let st={idx:null,locked:false,start:0,done:[],usedRespin:false};
 try{const s=JSON.parse(localStorage.getItem(KEY)||"null"); if(s) st=Object.assign(st,s);}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}};
